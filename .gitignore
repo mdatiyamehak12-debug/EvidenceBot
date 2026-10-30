@@ -1,0 +1,32 @@
+# Environment and Secrets (NEVER COMMIT SENSITIVE KEYS)
+.env
+*.env
+.env.local
+.streamlit/secrets.toml
+*.pem
+*.key
+*.cert
+
+# Python Cache & Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyd
+
+# Operating System & IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/

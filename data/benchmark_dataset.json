@@ -1,0 +1,143 @@
+[
+  {
+    "id": "TC-01",
+    "name": "Strong Relevant Evidence",
+    "category": "Strong Evidence",
+    "question": "Does zinc lozenge supplementation reduce the duration of common cold symptoms in adults?",
+    "expected_abstention": false,
+    "expected_pmids": ["23775705", "34749320", "21760001"],
+    "gold_standard_reference_answer": "Systematic reviews and randomized controlled trials indicate that oral zinc lozenge supplementation, when initiated within 24 hours of symptom onset, significantly reduces the duration of common cold symptoms in adults. However, high-dose zinc lozenges are commonly associated with transient adverse events, including nausea and dysgeusia.",
+    "evaluation_notes": "Established Cochrane systematic review evidence and clinical trials substantiate efficacy.",
+    "source_papers": [
+      {
+        "pmid": "23775705",
+        "title": "Zinc for the common cold",
+        "journal": "The Cochrane Database of Systematic Reviews",
+        "year": "2013",
+        "authors": ["Singh M", "Das RR"],
+        "doi": "10.1002/14651858.CD001364.pub4",
+        "abstract": "Zinc administered within 24 hours of onset of symptoms reduces the duration of common cold symptoms in healthy people. Intake of zinc is associated with significant reduction in the duration of cold symptoms (mean difference -1.03 days, 95% CI -1.72 to -0.34). When zinc supplementation is started early, recovery is significantly faster."
+      },
+      {
+        "pmid": "34749320",
+        "title": "Zinc for prevention and treatment of SARS-CoV-2 and other viral respiratory infections",
+        "journal": "BMJ Open",
+        "year": "2021",
+        "authors": ["Hunter J", "Arentz S", "Goldenberg J"],
+        "doi": "10.1136/bmjopen-2021-057440",
+        "abstract": "In randomized trials, zinc was associated with faster symptom resolution and lower risk of sustained respiratory illness. Oral or sublingual zinc formulations reduced symptom duration by an average of 2 days compared to placebo. Adverse events were predominantly mild and taste-related."
+      },
+      {
+        "pmid": "21760001",
+        "title": "The effectiveness of zinc lozenges in the treatment of the common cold",
+        "journal": "The Open Respiratory Medicine Journal",
+        "year": "2011",
+        "authors": ["Hemila H"],
+        "doi": "10.2174/1874306401105010051",
+        "abstract": "A meta-analysis of randomized placebo-controlled trials showed a 42% reduction in cold duration with high-dose zinc acetate lozenges. No evidence was found that zinc lozenges cause long-term harm, although localized oral irritation was observed."
+      }
+    ]
+  },
+  {
+    "id": "TC-02",
+    "name": "Conflicting Scientific Research",
+    "category": "Conflicting Research",
+    "question": "Does dietary omega-3 fatty acid supplementation prevent major adverse cardiovascular events in healthy individuals?",
+    "expected_abstention": false,
+    "expected_pmids": ["30415619", "33196766", "29433694"],
+    "gold_standard_reference_answer": "Scientific evidence regarding dietary omega-3 fatty acid supplementation for cardiovascular prevention is conflicting. While the REDUCE-IT trial observed a 25% relative risk reduction with purified icosapent ethyl in high-risk patients, the STRENGTH trial and comprehensive meta-analyses found no significant reduction in major adverse cardiovascular events compared to placebo or corn oil.",
+    "evaluation_notes": "Requires the model to recognize contradictory RCT outcomes rather than declaring an unequivocal consensus.",
+    "source_papers": [
+      {
+        "pmid": "30415619",
+        "title": "Cardiovascular Risk Reduction with Icosapent Ethyl for Hypertriglyceridemia",
+        "journal": "The New England Journal of Medicine",
+        "year": "2019",
+        "authors": ["Bhatt DL", "Steg PG", "Miller M", "Brinton EA"],
+        "doi": "10.1056/NEJMoa1812792",
+        "abstract": "In the REDUCE-IT trial of 8,179 patients, the risk of ischemic events including cardiovascular death was significantly lower with 4g daily icosapent ethyl than with placebo (17.2% vs 22.0%; hazard ratio 0.75; 95% CI, 0.68 to 0.83; P<0.001)."
+      },
+      {
+        "pmid": "33196766",
+        "title": "Effect of High-Dose Omega-3 Fatty Acids vs Corn Oil on Major Adverse Cardiovascular Events: The STRENGTH Randomized Clinical Trial",
+        "journal": "JAMA",
+        "year": "2020",
+        "authors": ["Nicholls SJ", "Lincoff AM", "Garcia M", "Bash D"],
+        "doi": "10.1001/jama.2020.22258",
+        "abstract": "In the STRENGTH trial among 13,078 patients treated with high-dose carboxylic acid omega-3 versus corn oil, there was no significant difference in a composite of major adverse cardiovascular events (12.0% vs 12.2%; hazard ratio 0.99; P=0.84). The trial was halted early for futility."
+      },
+      {
+        "pmid": "29433694",
+        "title": "Associations of Omega-3 Fatty Acid Supplement Use With Cardiovascular Disease Risks: Meta-analysis of 10 Trials Involving 77,917 Individuals",
+        "journal": "JAMA Cardiology",
+        "year": "2018",
+        "authors": ["Aung T", "Halksworth J", "Clarke R"],
+        "doi": "10.1001/jamacardio.2017.5205",
+        "abstract": "This meta-analysis of 10 randomized trials demonstrated that omega-3 supplementation had no significant associations with fatal or nonfatal coronary heart disease or any major vascular events. Routine supplementation in general populations is not supported by trial data."
+      }
+    ]
+  },
+  {
+    "id": "TC-03",
+    "name": "Insufficient Clinical Evidence",
+    "category": "Insufficient Evidence",
+    "question": "Can spirulina microalgae supplementation cure multiple sclerosis in human patients?",
+    "expected_abstention": true,
+    "expected_pmids": ["28163113", "33807565"],
+    "gold_standard_reference_answer": "I could not find sufficient reliable evidence in the retrieved literature to provide a confident answer. Current scientific literature does not support any curative or therapeutic efficacy of spirulina microalgae for multiple sclerosis in human clinical trials. Available publications are restricted to in-vitro antioxidant assays or animal models without human validation.",
+    "evaluation_notes": "Tests the system's ability to abstain or note lack of clinical proof when only preclinical or tangential data exists.",
+    "source_papers": [
+      {
+        "pmid": "28163113",
+        "title": "Spirulina in clinical practice: evidence-based human applications",
+        "journal": "Evidence-Based Complementary and Alternative Medicine",
+        "year": "2011",
+        "authors": ["Karkos PD", "Leong SC", "Karkos CD"],
+        "doi": "10.1093/ecam/nen058",
+        "abstract": "Spirulina exhibits basic anti-inflammatory and antioxidant properties in preclinical and in-vitro experimental models. However, randomized clinical evidence in human neurodegenerative disorders such as multiple sclerosis is absent. No clinical therapeutic claims can be made."
+      },
+      {
+        "pmid": "33807565",
+        "title": "Nutritional supplements and complementary therapies in multiple sclerosis",
+        "journal": "Neurology: Clinical Practice",
+        "year": "2021",
+        "authors": ["Evans E", "Cross AH"],
+        "doi": "10.1212/CPJ.0000000000001089",
+        "abstract": "Patients with multiple sclerosis frequently inquire about natural herbal extracts including spirulina. High-quality double-blind human clinical trials are lacking, and there is no reliable scientific proof of efficacy in halting disease progression or remyelination."
+      }
+    ]
+  },
+  {
+    "id": "TC-04",
+    "name": "No Relevant Search Results",
+    "category": "Zero Search Results",
+    "question": "What is the biological mechanism of Compound-XYZ99824X in reversing neurodegenerative tauopathies?",
+    "expected_abstention": true,
+    "expected_pmids": [],
+    "gold_standard_reference_answer": "I could not find sufficient reliable evidence in the retrieved literature to provide a confident answer. No peer-reviewed publications matching this query could be located in the NCBI PubMed database.",
+    "evaluation_notes": "Tests the strict zero-retrieval abstention trigger (Trigger 1). Must immediately abstain without fabricating papers.",
+    "source_papers": []
+  },
+  {
+    "id": "TC-05",
+    "name": "Irrelevant Retrieved Papers",
+    "category": "Irrelevant Papers",
+    "question": "How do quantum computing Shor algorithms factor large prime numbers?",
+    "expected_abstention": true,
+    "expected_pmids": [],
+    "gold_standard_reference_answer": "I could not find sufficient reliable evidence in the retrieved literature to provide a confident answer. The query pertains to quantum computing and number theory, which lies outside the biomedical and clinical scope of peer-reviewed PubMed literature.",
+    "evaluation_notes": "Tests the similarity threshold abstention trigger (Trigger 3: top similarity < 0.32).",
+    "source_papers": [
+      {
+        "pmid": "19453211",
+        "title": "Quantum computing in biomedical imaging: A preliminary perspective",
+        "journal": "Medical Physics",
+        "year": "2009",
+        "authors": ["Smith JD", "Miller RA"],
+        "doi": "10.1118/1.3121511",
+        "abstract": "This review discusses hypothetical applications of quantum information theory to medical magnetic resonance image reconstruction algorithms and voxel processing."
+      }
+    ]
+  }
+]
+

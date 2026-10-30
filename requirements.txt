@@ -1,0 +1,29 @@
+# =====================================================================
+# EvidenceBot - Project Dependencies
+# =====================================================================
+
+# Web Interface & Interactive Dashboard
+streamlit>=1.35.0
+
+# HTTP Requests & XML Parsing for NCBI PubMed
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+
+# Vector Embeddings and FAISS Similarity Search
+sentence-transformers>=3.0.0
+faiss-cpu>=1.8.0
+numpy>=1.26.0
+scikit-learn>=1.4.0
+torch>=2.2.0
+pillow>=10.0.0
+
+# Environment Variables & Configuration
+python-dotenv>=1.0.1
+pydantic>=2.7.0
+
+# LLM Providers (Google Gemini & OpenAI)
+google-genai>=0.1.1
+openai>=1.30.0
+
+# Automated Testing
+pytest>=8.2.0

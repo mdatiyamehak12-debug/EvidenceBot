@@ -1,0 +1,23 @@
+[
+  {
+    "category": "High Evidence (Established)",
+    "question": "Does zinc supplementation reduce the duration or severity of common cold symptoms?",
+    "expected_outcome": "Answer with strong PubMed citations"
+  },
+  {
+    "category": "High Evidence (Mechanistic)",
+    "question": "What is the primary cellular mechanism of action of metformin in type 2 diabetes?",
+    "expected_outcome": "Answer highlighting AMPK activation and hepatic gluconeogenesis inhibition"
+  },
+  {
+    "category": "Cutting Edge / Active Research",
+    "question": "What are the major challenges facing CAR-T cell therapy in solid tumors?",
+    "expected_outcome": "Answer discussing tumor microenvironment, antigen heterogeneity, and trafficking"
+  },
+  {
+    "category": "Unsubstantiated / Abstention Test",
+    "question": "Can listening to classical piano music directly cure bacterial meningitis without antibiotics?",
+    "expected_outcome": "Abstention: Insufficient or non-existent scientific evidence"
+  }
+]
+
