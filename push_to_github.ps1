@@ -1,39 +1,28 @@
 # EvidenceBot - Push to GitHub Utility Script
 param (
     [Parameter(Mandatory=$false)]
-    [string]$RepoUrl
+    [string]$RepoUrl = "https://github.com/mdatiyamehak12-debug/EvidenceBot.git"
 )
 
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host "            EVIDENCEBOT: UPLOAD TO GITHUB                   " -ForegroundColor Cyan
 Write-Host "============================================================" -ForegroundColor Cyan
 
-if (-not $RepoUrl) {
-    $RepoUrl = Read-Host "Please enter your GitHub repository URL (e.g., https://github.com/username/EvidenceBot.git)"
-}
-
-if (-not $RepoUrl) {
-    Write-Host "Error: No repository URL provided. Aborting." -ForegroundColor Red
-    exit 1
-}
-
-# Clean any existing origin remote
-git remote remove origin 2>$null
-
-# Add new remote
+# Clean and set remote
 Write-Host "Linking repository to $RepoUrl..." -ForegroundColor Yellow
+git remote remove origin 2>$null
 git remote add origin $RepoUrl
 git branch -M main
 
-# Push to GitHub
-Write-Host "Pushing project files to GitHub..." -ForegroundColor Green
-git push -u origin main
+# Push project to GitHub with force to override initial empty license/readme commit
+Write-Host "Pushing EvidenceBot codebase to GitHub..." -ForegroundColor Green
+git push -u origin main --force
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host ""
     Write-Host "🎉 SUCCESS! Your EvidenceBot project is now live on GitHub:" -ForegroundColor Green
-    Write-Host "👉 $RepoUrl" -ForegroundColor Cyan
+    Write-Host "👉 https://github.com/mdatiyamehak12-debug/EvidenceBot" -ForegroundColor Cyan
 } else {
     Write-Host ""
-    Write-Host "⚠️ Push encountered an issue. Please verify your credentials or permissions." -ForegroundColor Yellow
+    Write-Host "⚠️ If prompted by Git Credential Manager, complete the sign-in in your browser window." -ForegroundColor Yellow
 }
