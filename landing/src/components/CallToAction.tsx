@@ -50,3 +50,4 @@ export const CallToAction: React.FC<CallToActionProps> = ({
   );
 };
 export default CallToAction;
+

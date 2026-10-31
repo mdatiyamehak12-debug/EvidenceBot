@@ -95,3 +95,4 @@ export const Comparison: React.FC = () => {
   );
 };
 export default Comparison;
+
