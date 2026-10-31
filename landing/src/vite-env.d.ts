@@ -1,36 +1,30 @@
-/// <reference types="vite/client" />
-
 declare var document: any;
 declare var window: any;
 declare var HTMLElement: any;
 
-declare namespace JSX {
-  interface Element {
-    [key: string]: any;
-  }
-  interface IntrinsicElements {
-    [elemName: string]: any;
-  }
-}
-
-declare module 'react' {
-  export const useState: any;
-  export const useEffect: any;
-  export const useRef: any;
-  export const useMemo: any;
-  export const useCallback: any;
-  export const createElement: any;
-  export const StrictMode: any;
+declare namespace React {
   export type FC<P = {}> = (props: P) => any;
+  export type FunctionComponent<P = {}> = (props: P) => any;
   export type ReactNode = any;
-  export type CSSProperties = any;
+  export type CSSProperties = Record<string, any>;
   export interface ReactElement<P = any, T = any> {
     type: T;
     props: P;
     key: any;
   }
-  const React: any;
-  export default React;
+  export interface Component<P = {}, S = {}> {}
+  export function useState<T>(initialState: T | (() => T)): [T, (newState: T | ((prevState: T) => T)) => void];
+  export function useEffect(effect: () => void | (() => void), deps?: readonly any[]): void;
+  export function useRef<T>(initialValue?: T): { current: T };
+  export function useMemo<T>(factory: () => T, deps: readonly any[] | undefined): T;
+  export function useCallback<T extends (...args: any[]) => any>(callback: T, deps: readonly any[]): T;
+  export function createElement(type: any, props?: any, ...children: any[]): any;
+  export const StrictMode: any;
+}
+
+declare module 'react' {
+  export = React;
+  export as namespace React;
 }
 
 declare module 'react/jsx-runtime' {
@@ -77,4 +71,15 @@ declare module 'vite' {
 declare module '@vitejs/plugin-react' {
   const plugin: any;
   export default plugin;
+}
+
+declare global {
+  namespace JSX {
+    interface Element {
+      [key: string]: any;
+    }
+    interface IntrinsicElements {
+      [elemName: string]: any;
+    }
+  }
 }
