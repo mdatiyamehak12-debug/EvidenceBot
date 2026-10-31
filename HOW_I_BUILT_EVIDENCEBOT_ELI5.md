@@ -47,3 +47,4 @@ flowchart LR
 2. **Honest Abstention:** If the research is missing or conflicting, it never pretends. It tells you the truth: *"We don't know yet."*
 3. **One-Click Proof Badges:** Every single fact includes a clickable blue badge opening the original paper on PubMed.
 4. **Live Worldwide Access:** Packaged into a fast, beautiful website running worldwide in the cloud!
+

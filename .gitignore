@@ -36,3 +36,5 @@ data/public_url.txt
 *.zip
 
 
+
+cloudflared.exe
