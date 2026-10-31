@@ -1,16 +1,16 @@
 """
-EvidenceBot - Page 4: About & Platform Architecture
-===================================================
-Provides comprehensive documentation on EvidenceBot's design philosophy,
-system architecture, underlying technologies, limitations, and biomedical disclaimers.
+EvidenceBot - Page 4: Architecture & Methodology
+================================================
+Technical documentation on EvidenceBot's design philosophy,
+retrieval-augmented generation (RAG) architecture, underlying technologies, and governance protocols.
+Zero informal emojis; deeptech telemetry design.
 """
 
 import streamlit as st
 from utils.ui_components import apply_theme, render_sidebar, render_disclaimer
 
 st.set_page_config(
-    page_title="EvidenceBot – Platform Architecture",
-    page_icon="🛡️",
+    page_title="EvidenceBot – Architecture & Methodology",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -23,49 +23,62 @@ render_sidebar(current_page="Platform Architecture")
 st.markdown(
     """
     <div style="margin-bottom: 22px;">
-        <h2 style="color: #0f172a; margin-bottom: 4px; font-weight:800; letter-spacing:-0.02em;">🛡️ Platform Architecture & Governance</h2>
-        <p style="color: #64748b; margin: 0; font-size:1.02rem;">Enterprise Retrieval-Augmented Generation (RAG) framework, PubMed data provenance, and ethical abstention protocols.</p>
+        <div style="margin-bottom:6px;">
+            <span class="mono-tag" style="color:#38bdf8; background:rgba(14,165,233,0.1); border:1px solid rgba(14,165,233,0.25);">
+                SYSTEM ARCHITECTURE & GOVERNANCE
+            </span>
+        </div>
+        <h2 style="color: #ffffff; margin-bottom: 4px; font-weight:800; letter-spacing:-0.03em;">Architecture & Methodology</h2>
+        <p style="color: #94a3b8; margin: 0; font-size:0.98rem;">Enterprise Retrieval-Augmented Generation (RAG) framework, PubMed data provenance, and deterministic verification protocols.</p>
     </div>
     """,
     unsafe_allow_html=True
 )
 
-# =====================================================================
-# 1. Project Overview & Mission
-# =====================================================================
-st.markdown("### 🎯 Project Overview & Mission")
+# 1. Platform Philosophy
 st.markdown(
     """
-    In the life sciences and healthcare, hallucinated artificial intelligence outputs are not merely inconvenient—they are hazardous. 
-    Standard large language models (LLMs) often generate fabricated medical references, invent non-existent PubMed IDs (PMIDs), 
-    and answer questions even when real scientific consensus does not exist.
+    <div style="margin-bottom:10px;">
+        <span class="mono-tag" style="color:#94a3b8; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);">DESIGN PRINCIPLES</span>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+st.markdown(
+    """
+    In the biomedical sciences, ungrounded artificial intelligence outputs are hazardous. 
+    Standard large language models (LLMs) routinely invent non-existent PubMed citations, synthesize conflicting clinical claims without nuance, 
+    and output speculative conclusions when scientific consensus does not exist.
 
-    **EvidenceBot was engineered to solve this through three core principles:**
-    1. **Empirical Literature Grounding:** Synthesizes answers strictly from real scientific abstracts retrieved from the U.S. National Library of Medicine (NCBI PubMed).
-    2. **Guaranteed Citation Provenance:** Links every cited finding to an authentic PubMed ID (`[PMID: 12345678]`).
-    3. **Ethical Scientific Abstention:** Actively withholds generation and admits when available peer-reviewed evidence is insufficient.
+    EvidenceBot enforces three architectural invariants:
+    - **Empirical Literature Grounding:** All synthesized statements originate strictly from authentic peer-reviewed abstracts indexed on the National Library of Medicine (NCBI PubMed).
+    - **Deterministic Provenance:** All factual claims are deterministically attributed to specific PubMed Identifiers (`PMID`).
+    - **Empirical Abstention:** The engine autonomously halts generation and withholds conclusions when retrieved literature fails confidence thresholds.
     """
 )
 
 st.markdown("---")
 
-# =====================================================================
-# 2. How EvidenceBot Works (The RAG Pipeline)
-# =====================================================================
-st.markdown("### 🔄 How EvidenceBot Works")
-st.caption("EvidenceBot follows an end-to-end 6-stage Retrieval-Augmented Generation (RAG) architecture:")
+# 2. Pipeline Architecture
+st.markdown(
+    """
+    <div style="margin-bottom:10px;">
+        <span class="mono-tag" style="color:#94a3b8; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);">EXECUTION PIPELINE</span>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+st.caption("EvidenceBot executes an end-to-end 6-stage scientific discovery and verification pipeline:")
 
 col_s1, col_s2, col_s3 = st.columns(3)
 
 with col_s1:
     st.markdown(
         """
-        <div class="bio-card" style="height:100%;">
-            <div style="font-weight:700; color:#0f2b48; font-size:1.05rem;">1. Live PubMed Query</div>
-            <p style="font-size:0.88rem; color:#64748b; margin-top:8px;">
-                When a user asks a question, EvidenceBot connects to the official NCBI E-Utilities API (<code>esearch</code>) 
-                to identify the most relevant peer-reviewed publication IDs.
-            </p>
+        <div class="feature-card">
+            <div class="stat-label">Stage 01</div>
+            <div class="feature-title">NCBI Entrez Querying</div>
+            <div class="feature-desc">Formulates search syntax and queries NCBI PubMed E-Utilities (<code>esearch</code>) to identify relevant peer-reviewed publication IDs.</div>
         </div>
         """,
         unsafe_allow_html=True
@@ -74,12 +87,10 @@ with col_s1:
 with col_s2:
     st.markdown(
         """
-        <div class="bio-card" style="height:100%;">
-            <div style="font-weight:700; color:#0f2b48; font-size:1.05rem;">2. Abstract Ingestion & Chunking</div>
-            <p style="font-size:0.88rem; color:#64748b; margin-top:8px;">
-                PubMed XML records are downloaded via <code>efetch</code>, parsed, and split into overlapping sentence passages 
-                while preserving medical abbreviations (e.g. <em>et al.</em>, <em>p &lt; 0.05</em>).
-            </p>
+        <div class="feature-card">
+            <div class="stat-label">Stage 02</div>
+            <div class="feature-title">Abstract Extraction</div>
+            <div class="feature-desc">Downloads PubMed XML via <code>efetch</code>, parsing titles, journals, authors, and structured abstracts with medical abbreviation preservation.</div>
         </div>
         """,
         unsafe_allow_html=True
@@ -88,12 +99,10 @@ with col_s2:
 with col_s3:
     st.markdown(
         """
-        <div class="bio-card" style="height:100%;">
-            <div style="font-weight:700; color:#0f2b48; font-size:1.05rem;">3. FAISS Vector Ranking</div>
-            <p style="font-size:0.88rem; color:#64748b; margin-top:8px;">
-                Passages are converted into dense mathematical vectors using <code>all-MiniLM-L6-v2</code>. 
-                FAISS performs sub-millisecond Cosine Similarity matching against the question.
-            </p>
+        <div class="feature-card">
+            <div class="stat-label">Stage 03</div>
+            <div class="feature-title">Dense FAISS Vector Index</div>
+            <div class="feature-desc">Encodes passages into dense 384/768-dimensional vectors using <code>all-MiniLM-L6-v2</code>. FAISS executes sub-millisecond Cosine Similarity ranking.</div>
         </div>
         """,
         unsafe_allow_html=True
@@ -105,12 +114,10 @@ col_s4, col_s5, col_s6 = st.columns(3)
 with col_s4:
     st.markdown(
         """
-        <div class="bio-card" style="height:100%;">
-            <div style="font-weight:700; color:#0f2b48; font-size:1.05rem;">4. Abstention Threshold Check</div>
-            <p style="font-size:0.88rem; color:#64748b; margin-top:8px;">
-                Before any generation occurs, similarity scores are audited against a strict threshold (0.32). 
-                If literature is irrelevant or absent, EvidenceBot openly abstains.
-            </p>
+        <div class="feature-card">
+            <div class="stat-label">Stage 04</div>
+            <div class="feature-title">Abstention Evaluation</div>
+            <div class="feature-desc">Audits candidate chunk similarity against a strict cosine threshold (0.32). If literature is absent or off-target, generation halts immediately.</div>
         </div>
         """,
         unsafe_allow_html=True
@@ -119,12 +126,10 @@ with col_s4:
 with col_s5:
     st.markdown(
         """
-        <div class="bio-card" style="height:100%;">
-            <div style="font-weight:700; color:#0f2b48; font-size:1.05rem;">5. Grounded Synthesis</div>
-            <p style="font-size:0.88rem; color:#64748b; margin-top:8px;">
-                The LLM (Gemini, OpenAI, or the built-in Extractive Synthesizer) receives a strict system instruction 
-                to formulate answers using <em>only</em> the retrieved passages.
-            </p>
+        <div class="feature-card">
+            <div class="stat-label">Stage 05</div>
+            <div class="feature-title">Constrained Synthesis</div>
+            <div class="feature-desc">Inference engine receives strict prompt constraints restricting output strictly to facts present in retrieved excerpts.</div>
         </div>
         """,
         unsafe_allow_html=True
@@ -133,12 +138,10 @@ with col_s5:
 with col_s6:
     st.markdown(
         """
-        <div class="bio-card" style="height:100%;">
-            <div style="font-weight:700; color:#0f2b48; font-size:1.05rem;">6. Citation Verification Audit</div>
-            <p style="font-size:0.88rem; color:#64748b; margin-top:8px;">
-                The generated answer is regex-parsed to verify that every cited PMID corresponds to an actual 
-                retrieved paper, ensuring zero hallucinated citations.
-            </p>
+        <div class="feature-card">
+            <div class="stat-label">Stage 06</div>
+            <div class="feature-title">Provenance Audit</div>
+            <div class="feature-desc">Parses generated text to ensure every cited PMID exists in the retrieved set and matches its parent publication metadata.</div>
         </div>
         """,
         unsafe_allow_html=True
@@ -146,44 +149,59 @@ with col_s6:
 
 st.markdown("---")
 
-# =====================================================================
-# 3. Technologies Used
-# =====================================================================
-st.markdown("### 💻 Technology Stack")
+# 3. Technology Stack
+st.markdown(
+    """
+    <div style="margin-bottom:10px;">
+        <span class="mono-tag" style="color:#94a3b8; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);">CORE TECHNOLOGY STACK</span>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 tech_col1, tech_col2 = st.columns(2)
 
 with tech_col1:
     st.markdown(
         """
-        - **Python 3.14**: High-performance backend runtime.
-        - **Streamlit**: Responsive, multi-page scientific dashboard framework.
-        - **NCBI PubMed E-Utilities**: Direct REST API integration with PubMed (`esearch` and `efetch`).
-        - **BeautifulSoup4 & ElementTree**: Robust XML parsing for scientific publications.
-        """
+        <div class="stat-tile">
+            <div class="stat-label">Ingestion & Runtime</div>
+            <ul style="margin: 8px 0 0 16px; padding: 0; color: #cbd5e1; font-size: 0.88rem; line-height: 1.8;">
+                <li><strong>Python 3.14:</strong> High-performance core backend runtime.</li>
+                <li><strong>Streamlit:</strong> Multi-page reactive biomedical dashboard.</li>
+                <li><strong>NCBI PubMed E-Utilities:</strong> Direct programmatic REST gateway (<code>esearch</code>, <code>efetch</code>).</li>
+                <li><strong>ElementTree & BeautifulSoup4:</strong> Robust XML schema parsing.</li>
+            </ul>
+        </div>
+        """,
+        unsafe_allow_html=True
     )
 
 with tech_col2:
     st.markdown(
         """
-        - **Sentence Transformers (`all-MiniLM-L6-v2`)**: Dense semantic text representations.
-        - **FAISS (Facebook AI Similarity Search)**: Sub-millisecond Cosine Similarity index (`IndexFlatIP`).
-        - **Google Gemini & OpenAI SDKs**: Grounded multi-paper synthesis with zero-API fallback.
-        - **Pytest & Unittest**: Automated regression and citation verification testing.
-        """
+        <div class="stat-tile">
+            <div class="stat-label">Vector Retrieval & Inference</div>
+            <ul style="margin: 8px 0 0 16px; padding: 0; color: #cbd5e1; font-size: 0.88rem; line-height: 1.8;">
+                <li><strong>SentenceTransformers:</strong> Dense semantic embedding models (<code>all-MiniLM-L6-v2</code>).</li>
+                <li><strong>FAISS (Meta AI):</strong> GPU/CPU optimized dense vector index (<code>IndexFlatIP</code>).</li>
+                <li><strong>Google Gemini 2.5:</strong> Grounded scientific synthesis with deterministic fallback.</li>
+                <li><strong>Pytest & Unittest:</strong> Complete automated test suite (28/28 passing).</li>
+            </ul>
+        </div>
+        """,
+        unsafe_allow_html=True
     )
 
 st.markdown("---")
 
-# =====================================================================
-# 4. Limitations & Medical Disclaimer
-# =====================================================================
-st.markdown("### ⚠️ Known Limitations & Disclaimers")
+# 4. Limitations
+st.markdown("### Methodological Scope & Limitations")
 st.markdown(
     """
-    1. **Abstract-Level Evidence:** EvidenceBot currently indexes and parses peer-reviewed **abstracts** from PubMed. While abstracts summarize key endpoints, full clinical protocols, adverse event profiles, and post-hoc analyses may reside in full-text articles.
-    2. **Publication Bias:** PubMed indexes published studies, which historically favor positive or statistically significant outcomes.
-    3. **Clinical Judgment:** EvidenceBot synthesizes academic literature for exploration and education. It does not possess medical training or patient context.
+    1. **Abstract-Level Evidence:** EvidenceBot indexes peer-reviewed **abstract summaries** from PubMed. While abstracts capture primary endpoints, full clinical protocols, adverse-event tables, and sub-group distributions require full-text manuscripts.
+    2. **Publication Bias:** Biomedical databases catalog published studies, which historically favor statistically significant findings.
+    3. **Clinical Governance:** EvidenceBot synthesizes academic literature for exploration, research, and education. It does not replace clinical judgment or individual physician consultation.
     """
 )
 
