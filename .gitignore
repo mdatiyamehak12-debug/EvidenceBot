@@ -33,4 +33,6 @@ ENV/
 
 # Temporary & Runtime Data
 data/public_url.txt
+*.zip
+
 
