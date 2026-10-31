@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EvidenceBot — The Biomedical AI Forbidden from Hallucinating</title>
+  <meta name="description" content="Autonomous biomedical literature intelligence grounded in peer-reviewed PubMed evidence. Vector similarity search, traceable PMIDs, and empirical abstention.">
+  <link rel="icon" type="image/svg+xml" href="public/logo.svg">
+
+  <!-- Typography: Plus Jakarta Sans, Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            bgPrimary: '#06090E',
+            bgSecondary: '#090E17',
+            bgSection: '#0B1220',
+            cyanElectric: '#0EA5E9',
+            cyanLight: '#38BDF8',
+            emeraldLive: '#10B981',
+            textPrimary: '#F8FAFC',
+            textSecondary: '#94A3B8',
+            textMuted: '#64748B',
+          },
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          boxShadow: {
+            glowCyan: '0 0 35px -5px rgba(14, 165, 233, 0.25)',
+            glowEmerald: '0 0 30px -5px rgba(16, 185, 129, 0.25)',
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 7px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #06090E;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1E293B;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #0EA5E9;
+    }
+
+    /* Live Telemetry Pulse Animation */
+    @keyframes livePulse {
+      0% { transform: scale(0.92); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+      70% { transform: scale(1.06); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+      100% { transform: scale(0.92); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+    .pulse-emerald {
+      animation: livePulse 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    /* Subtle Background Grid Pattern */
+    .bg-grid-pattern {
+      background-size: 40px 40px;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    }
+
+    /* Glassmorphism Cards */
+    .glass-card {
+      background: rgba(13, 19, 34, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .glass-card:hover {
+      border-color: rgba(14, 165, 233, 0.4);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 30px -8px rgba(14, 165, 233, 0.15);
+    }
+  </style>
+</head>
+<body class="bg-bgPrimary text-textPrimary font-sans antialiased selection:bg-cyanElectric selection:text-white relative overflow-x-hidden bg-grid-pattern min-h-screen">
+
+  <!-- Ambient Radial Glows -->
+  <div class="fixed top-0 left-1/2 -translate-x-1/2 w-[900px] h-[450px] bg-cyanElectric/10 blur-[130px] rounded-full pointer-events-none -z-10"></div>
+  <div class="fixed bottom-0 right-0 w-[600px] h-[350px] bg-emeraldLive/5 blur-[140px] rounded-full pointer-events-none -z-10"></div>
+
+  <!-- ===================================================================== -->
+  <!-- SECTION 1: FIXED NAVIGATION BAR                                       -->
+  <!-- ===================================================================== -->
+  <header class="fixed top-0 inset-x-0 z-50 bg-[#06090E]/80 backdrop-blur-md border-b border-white/[0.06] transition-all">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      
+      <!-- Brand & Status -->
+      <a href="#" class="flex items-center space-x-3 group">
+        <img src="public/logo.svg" alt="EvidenceBot Logo" class="w-8 h-8 rounded-lg shadow-sm group-hover:scale-105 transition-transform">
+        <div class="flex flex-col">
+          <span class="text-base font-extrabold tracking-tight text-white group-hover:text-cyanLight transition-colors">EvidenceBot</span>
+          <div class="flex items-center space-x-1.5 -mt-0.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-emeraldLive pulse-emerald"></span>
+            <span class="font-mono text-[9px] uppercase tracking-wider text-emerald-400 font-semibold">NCBI PubMed Connected</span>
+          </div>
+        </div>
+      </a>
+
+      <!-- Desktop Navigation Links -->
+      <nav class="hidden md:flex items-center space-x-8 text-sm font-medium text-textSecondary">
+        <a href="#capabilities" class="hover:text-white transition-colors">Capabilities</a>
+        <a href="#pipeline" class="hover:text-white transition-colors">Architecture</a>
+        <a href="#telemetry" class="hover:text-white transition-colors">Telemetry</a>
+        <a href="#comparison" class="hover:text-white transition-colors">Benchmark</a>
+        <a href="#personas" class="hover:text-white transition-colors">Who Uses It</a>
+      </nav>
+
+      <!-- Right Action & Mobile Menu Toggle -->
+      <div class="flex items-center space-x-4">
+        <a id="navLaunchBtn" href="http://localhost:8501" target="_blank" class="hidden sm:inline-flex items-center px-4 py-2 rounded-md bg-gradient-to-r from-cyanElectric to-[#0284C7] hover:from-cyanLight hover:to-cyanElectric text-white text-xs font-semibold tracking-tight shadow-glowCyan transition-all transform hover:-translate-y-0.5">
+          <span>Launch Platform</span>
+          <i data-lucide="arrow-right" class="w-3.5 h-3.5 ml-1.5"></i>
+        </a>
+        
+        <!-- Mobile Drawer Button -->
+        <button id="mobileMenuBtn" class="md:hidden p-2 text-textSecondary hover:text-white focus:outline-none" aria-label="Toggle menu">
+          <i data-lucide="menu" class="w-5 h-5"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Drawer Menu -->
+    <div id="mobileMenu" class="hidden md:hidden bg-bgSecondary border-b border-white/[0.08] px-4 pt-2 pb-4 space-y-2">
+      <a href="#capabilities" class="block px-3 py-2 rounded-md text-sm font-medium text-textSecondary hover:text-white hover:bg-white/5">Capabilities</a>
+      <a href="#pipeline" class="block px-3 py-2 rounded-md text-sm font-medium text-textSecondary hover:text-white hover:bg-white/5">Architecture</a>
+      <a href="#telemetry" class="block px-3 py-2 rounded-md text-sm font-medium text-textSecondary hover:text-white hover:bg-white/5">Telemetry</a>
+      <a href="#comparison" class="block px-3 py-2 rounded-md text-sm font-medium text-textSecondary hover:text-white hover:bg-white/5">Benchmark</a>
+      <a href="#personas" class="block px-3 py-2 rounded-md text-sm font-medium text-textSecondary hover:text-white hover:bg-white/5">Who Uses It</a>
+      <a href="http://localhost:8501" target="_blank" class="block w-full text-center px-4 py-2.5 rounded-md bg-cyanElectric text-white text-xs font-bold uppercase tracking-wider">Launch Platform &rarr;</a>
+    </div>
+  </header>
+
+  <!-- ===================================================================== -->
+  <!-- SECTION 2: HERO SECTION                                               -->
+  <!-- ===================================================================== -->
+  <section class="pt-32 pb-20 md:pt-40 md:pb-28 relative">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <!-- Center Hero Content -->
+      <div class="text-center max-w-4xl mx-auto">
+        <!-- Status Badge -->
+        <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-cyanElectric/10 border border-cyanElectric/30 text-cyanLight mb-6">
+          <span class="w-1.5 h-1.5 rounded-full bg-cyanElectric"></span>
+          <span class="font-mono text-xs uppercase tracking-widest font-semibold">Biomedical Literature Intelligence Engine</span>
+        </div>
+
+        <!-- Main Headline -->
+        <h1 class="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-white leading-[1.08] mb-6">
+          Autonomous Biomedical Intelligence.<br>
+          <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyanLight via-white to-emeraldLive">Grounded in Evidence. Built to Abstain.</span>
+        </h1>
+
+        <!-- Subheadline -->
+        <p class="text-base sm:text-xl text-textSecondary font-normal max-w-3xl mx-auto mb-10 leading-relaxed">
+          Search biomedical research, retrieve relevant scientific evidence, and generate research answers with traceable PubMed references. EvidenceBot puts scientific literature at the center of every response.
+        </p>
+
+        <!-- CTAs -->
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4 mb-14">
+          <a id="heroLaunchBtn" href="http://localhost:8501" target="_blank" class="w-full sm:w-auto inline-flex items-center justify-center px-7 py-3.5 rounded-md bg-cyanElectric hover:bg-cyanLight text-white font-semibold text-sm tracking-tight shadow-glowCyan transition-all transform hover:-translate-y-0.5">
+            <span>Launch EvidenceBot Free</span>
+            <i data-lucide="arrow-right" class="w-4 h-4 ml-2"></i>
+          </a>
+          <a href="#pipeline" class="w-full sm:w-auto inline-flex items-center justify-center px-7 py-3.5 rounded-md bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.1] text-textPrimary font-semibold text-sm tracking-tight transition-all">
+            <span>Explore Architecture</span>
+            <i data-lucide="layers" class="w-4 h-4 ml-2 text-textSecondary"></i>
+          </a>
+        </div>
+
+        <!-- 3 Technical Indicators -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 max-w-3xl mx-auto pt-4 border-t border-white/[0.06]">
+          <div class="flex items-center justify-center space-x-2 text-xs font-mono text-textSecondary uppercase tracking-wider">
+            <i data-lucide="database" class="w-3.5 h-3.5 text-cyanLight"></i>
+            <span>PubMed Literature Retrieval</span>
+          </div>
+          <div class="flex items-center justify-center space-x-2 text-xs font-mono text-textSecondary uppercase tracking-wider">
+            <i data-lucide="cpu" class="w-3.5 h-3.5 text-cyanElectric"></i>
+            <span>Semantic Vector Search</span>
+          </div>
+          <div class="flex items-center justify-center space-x-2 text-xs font-mono text-textSecondary uppercase tracking-wider">
+            <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emeraldLive"></i>
+            <span>Evidence-Grounded Answers</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- =================================================================== -->
+      <!-- INTERACTIVE SEARCH CONSOLE SIMULATION                               -->
+      <!-- =================================================================== -->
+      <div id="demo-console" class="mt-16 max-w-4xl mx-auto rounded-xl border border-white/[0.12] bg-[#090E17]/95 shadow-2xl overflow-hidden backdrop-blur-xl">
+        <!-- Console Window Header -->
+        <div class="px-5 py-3.5 bg-[#06090E] border-b border-white/[0.08] flex items-center justify-between">
+          <div class="flex items-center space-x-2.5">
+            <div class="flex space-x-1.5">
+              <span class="w-3 h-3 rounded-full bg-red-500/80 inline-block"></span>
+              <span class="w-3 h-3 rounded-full bg-amber-500/80 inline-block"></span>
+              <span class="w-3 h-3 rounded-full bg-emerald-500/80 inline-block"></span>
+            </div>
+            <span class="font-mono text-xs uppercase tracking-wider text-textMuted font-semibold ml-2">EVIDENCEBOT / RESEARCH CONSOLE</span>
+          </div>
+          <div class="flex items-center space-x-2 text-[11px] font-mono text-cyanLight bg-cyanElectric/10 px-2.5 py-1 rounded border border-cyanElectric/20">
+            <span class="w-1.5 h-1.5 rounded-full bg-cyanLight"></span>
+            <span>SIMULATION MODE &bull; NCBI ENTREZ</span>
+          </div>
+        </div>
+
+        <!-- Console Query Input Area -->
+        <div class="p-6 border-b border-white/[0.06]">
+          <label class="block text-xs font-mono text-textMuted uppercase tracking-wider mb-2">Scientific or Clinical Inquiry:</label>
+          <div class="relative">
+            <input id="demoInput" type="text" value="Does vitamin D supplementation reduce respiratory tract infections?" class="w-full bg-[#06090E] border border-white/[0.12] rounded-lg px-4 py-3 text-sm text-white focus:outline-none focus:border-cyanElectric transition-colors font-sans pr-28">
+            <button id="runDemoBtn" class="absolute right-2 top-2 px-3.5 py-1.5 rounded bg-cyanElectric hover:bg-cyanLight text-white font-medium text-xs tracking-tight transition-all">
+              Execute &rarr;
+            </button>
+          </div>
+          
+          <!-- Sample Query Quick Chips -->
+          <div class="flex flex-wrap items-center gap-2 mt-3 text-xs text-textMuted">
+            <span class="font-mono text-[11px]">Examples:</span>
+            <button onclick="setQuery('Does zinc supplementation reduce the duration or severity of common cold symptoms?')" class="px-2.5 py-1 rounded bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-textSecondary text-[11px] font-mono transition-colors">Zinc & Common Cold</button>
+            <button onclick="setQuery('What is the cellular mechanism of action of metformin in type 2 diabetes?')" class="px-2.5 py-1 rounded bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-textSecondary text-[11px] font-mono transition-colors">Metformin Molecular Pathway</button>
+            <button onclick="setQuery('Can spirulina microalgae supplementation cure multiple sclerosis in human patients?')" class="px-2.5 py-1 rounded bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] text-textSecondary text-[11px] font-mono transition-colors">Spirulina & MS (Abstention)</button>
+          </div>
+        </div>
+
+        <!-- Staged 4-Step Pipeline Execution Visualizer -->
+        <div class="p-6 bg-[#0B1220]/50">
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            <div id="step1" class="p-3 rounded-lg border border-cyanElectric/40 bg-cyanElectric/10 transition-all">
+              <div class="font-mono text-[10px] text-cyanLight font-bold">01 &bull; PUBMED RETRIEVAL</div>
+              <div class="text-xs text-white font-medium mt-1">Searching NCBI...</div>
+            </div>
+            <div id="step2" class="p-3 rounded-lg border border-white/[0.08] bg-white/[0.02] transition-all">
+              <div class="font-mono text-[10px] text-textMuted font-bold">02 &bull; VECTOR RANKING</div>
+              <div class="text-xs text-textSecondary font-medium mt-1">FAISS Indexing</div>
+            </div>
+            <div id="step3" class="p-3 rounded-lg border border-white/[0.08] bg-white/[0.02] transition-all">
+              <div class="font-mono text-[10px] text-textMuted font-bold">03 &bull; EXCERPT PASSAGES</div>
+              <div class="text-xs text-textSecondary font-medium mt-1">Scoring Excerpts</div>
+            </div>
+            <div id="step4" class="p-3 rounded-lg border border-white/[0.08] bg-white/[0.02] transition-all">
+              <div class="font-mono text-[10px] text-textMuted font-bold">04 &bull; GROUNDED ANSWER</div>
+              <div class="text-xs text-textSecondary font-medium mt-1">PMID Provenance</div>
+            </div>
+          </div>
+
+          <!-- Output Answer Card Container -->
+          <div id="demoAnswerBox" class="p-5 rounded-lg border border-cyanElectric/30 bg-[#06090E] space-y-4">
+            <!-- Direct Synthesis -->
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <span class="font-mono text-[11px] text-cyanLight uppercase tracking-wider font-bold">DIRECT EVIDENCE SYNTHESIS</span>
+                <span class="font-mono text-[10px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">CONFIDENCE: HIGH</span>
+              </div>
+              <p id="demoAnswerText" class="text-sm text-textPrimary leading-relaxed">
+                Randomized controlled trials and meta-analyses indexed on PubMed demonstrate that regular daily or weekly vitamin D supplementation significantly reduces the risk of acute respiratory tract infections, particularly in individuals with severe baseline vitamin D deficiency (&lt;25 nmol/L) <a href="https://pubmed.ncbi.nlm.nih.gov/34322844/" target="_blank" class="text-cyanLight hover:underline font-mono text-xs">[PMID: 34322844]</a>.
+              </p>
+            </div>
+
+            <!-- Supporting Evidence Quotes -->
+            <div class="pt-3 border-t border-white/[0.08]">
+              <div class="font-mono text-[11px] text-textMuted uppercase tracking-wider mb-2">VERIFIED EXCERPT PASSAGES:</div>
+              <div id="demoExcerpts" class="space-y-2">
+                <div class="p-2.5 rounded bg-white/[0.02] border-l-2 border-cyanElectric text-xs text-textSecondary">
+                  <span class="font-mono text-cyanLight font-semibold">[PMID: 34322844]</span>: "In systematic reviews and individual patient data meta-analyses of randomized trials, vitamin D supplementation was safe and protected against acute respiratory tract infections overall (aOR 0.88, 95% CI 0.81 to 0.96)..."
+                </div>
+                <div class="p-2.5 rounded bg-white/[0.02] border-l-2 border-cyanElectric text-xs text-textSecondary">
+                  <span class="font-mono text-cyanLight font-semibold">[PMID: 28202713]</span>: "Patients receiving daily or weekly doses without additional boluses experienced the most pronounced protective effects, especially those presenting with baseline 25-hydroxyvitamin D levels below 25 nmol/L."
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- SECTION 3: PLATFORM TELEMETRY                                         -->
+  <!-- ===================================================================== -->
+  <section id="telemetry" class="py-20 border-t border-white/[0.06] bg-[#090E17]/60">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center max-w-2xl mx-auto mb-14">
+        <span class="font-mono text-xs text-cyanLight uppercase tracking-widest font-semibold">CORE PLATFORM ARCHITECTURE</span>
+        <h2 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight mt-2">Platform Telemetry</h2>
+        <p class="text-textSecondary text-sm sm:text-base mt-3">Empirical benchmarks grounded in verified biomedical infrastructure components.</p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <!-- Metric 1: PubMed Source -->
+        <div class="glass-card p-6 rounded-xl">
+          <div class="flex items-center justify-between mb-4">
+            <span class="font-mono text-[11px] text-cyanLight uppercase tracking-wider font-semibold">Literature Source</span>
+            <i data-lucide="database" class="w-4 h-4 text-cyanLight"></i>
+          </div>
+          <div class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">PubMed</div>
+          <p class="text-textSecondary text-xs mt-3 leading-relaxed">
+            Real-time programmatic query formulation and abstract ingestion through the official NCBI E-Utilities API suite.
+          </p>
+        </div>
+
+        <!-- Metric 2: 384-Dim Embeddings -->
+        <div class="glass-card p-6 rounded-xl">
+          <div class="flex items-center justify-between mb-4">
+            <span class="font-mono text-[11px] text-cyanLight uppercase tracking-wider font-semibold">Semantic Embedding</span>
+            <i data-lucide="cpu" class="w-4 h-4 text-cyanLight"></i>
+          </div>
+          <div class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">384-Dim</div>
+          <p class="text-textSecondary text-xs mt-3 leading-relaxed">
+            Dense vector representations generated by <code class="text-cyanLight font-mono">all-MiniLM-L6-v2</code> mapping scientific context.
+          </p>
+        </div>
+
+        <!-- Metric 3: FAISS Similarity -->
+        <div class="glass-card p-6 rounded-xl">
+          <div class="flex items-center justify-between mb-4">
+            <span class="font-mono text-[11px] text-cyanLight uppercase tracking-wider font-semibold">Vector Index</span>
+            <i data-lucide="zap" class="w-4 h-4 text-cyanLight"></i>
+          </div>
+          <div class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">FAISS</div>
+          <p class="text-textSecondary text-xs mt-3 leading-relaxed">
+            Inner-product cosine similarity retrieval scoring and extracting candidate passages in sub-millisecond cycles.
+          </p>
+        </div>
+
+        <!-- Metric 4: PMID Traceability -->
+        <div class="glass-card p-6 rounded-xl">
+          <div class="flex items-center justify-between mb-4">
+            <span class="font-mono text-[11px] text-emerald-400 uppercase tracking-wider font-semibold">Traceability</span>
+            <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>
+          </div>
+          <div class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">PMID</div>
+          <p class="text-textSecondary text-xs mt-3 leading-relaxed">
+            Every factual statement links directly to authentic PubMed Identifiers, ensuring deterministic verification.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- SECTION 4: THE PROBLEM VS THE SOLUTION                                -->
+  <!-- ===================================================================== -->
+  <section id="comparison" class="py-24 border-t border-white/[0.06] relative">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <span class="font-mono text-xs text-rose-400 uppercase tracking-widest font-semibold">THE PROBLEM &bull; UNGROUNDED AI</span>
+        <h2 class="text-3xl sm:text-5xl font-extrabold text-white tracking-tight mt-2">
+          Scientific Research Deserves Better Than AI Guesswork.
+        </h2>
+        <p class="text-textSecondary text-base mt-4">
+          In healthcare and biotechnology, hallucinated citations and unverified claims are dangerous. See how EvidenceBot differs from conventional LLM chatbots.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+        
+        <!-- LEFT: Conventional AI Chatbots (Red Accents) -->
+        <div class="p-8 rounded-xl border border-red-500/20 bg-red-950/10 backdrop-blur-md relative overflow-hidden">
+          <div class="flex items-center space-x-2.5 mb-6 text-red-400 font-mono text-xs uppercase tracking-wider font-bold">
+            <i data-lucide="x-circle" class="w-4 h-4 text-red-400"></i>
+            <span>Conventional AI Chatbots</span>
+          </div>
+
+          <h3 class="text-xl font-bold text-white mb-6">Prone to Hallucinations & Fabricated Citations</h3>
+
+          <ul class="space-y-4 text-sm text-textSecondary">
+            <li class="flex items-start space-x-3">
+              <i data-lucide="alert-triangle" class="w-4 h-4 text-red-400 shrink-0 mt-0.5"></i>
+              <span>Produces plausible-sounding but completely unsupported scientific assertions.</span>
+            </li>
+            <li class="flex items-start space-x-3">
+              <i data-lucide="alert-triangle" class="w-4 h-4 text-red-400 shrink-0 mt-0.5"></i>
+              <span>Fabricates non-existent PubMed IDs (PMIDs), fake author rosters, and invent paper titles.</span>
+            </li>
+            <li class="flex items-start space-x-3">
+              <i data-lucide="alert-triangle" class="w-4 h-4 text-red-400 shrink-0 mt-0.5"></i>
+              <span>Routinely confuses observational correlation with direct clinical causality.</span>
+            </li>
+            <li class="flex items-start space-x-3">
+              <i data-lucide="alert-triangle" class="w-4 h-4 text-red-400 shrink-0 mt-0.5"></i>
+              <span>Answers confidently even when scientific consensus is absent or studies conflict.</span>
+            </li>
+            <li class="flex items-start space-x-3">
+              <i data-lucide="alert-triangle" class="w-4 h-4 text-red-400 shrink-0 mt-0.5"></i>
+              <span>Operates as a black box without transparent, traceable source evidence.</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- RIGHT: EvidenceBot (Cyan & Emerald Accents) -->
+        <div class="p-8 rounded-xl border border-cyanElectric/30 bg-[#090E17]/90 shadow-glowCyan relative overflow-hidden">
+          <div class="flex items-center space-x-2.5 mb-6 text-cyanLight font-mono text-xs uppercase tracking-wider font-bold">
+            <i data-lucide="check-circle-2" class="w-4 h-4 text-emeraldLive"></i>
+            <span>EvidenceBot Architecture</span>
+          </div>
+
+          <h3 class="text-xl font-bold text-white mb-6">Grounded Literature Synthesis & Verified PMIDs</h3>
+
+          <ul class="space-y-4 text-sm text-textSecondary">
+            <li class="flex items-start space-x-3">
+              <i data-lucide="check" class="w-4 h-4 text-emeraldLive shrink-0 mt-0.5"></i>
+              <span>Retrieves authentic biomedical literature from NCBI PubMed before drafting answers.</span>
+            </li>
+            <li class="flex items-start space-x-3">
+              <i data-lucide="check" class="w-4 h-4 text-emeraldLive shrink-0 mt-0.5"></i>
+              <span>Employs dense vector embeddings to mathematically extract relevant passages.</span>
+            </li>
+            <li class="flex items-start space-x-3">
+              <i data-lucide="check" class="w-4 h-4 text-emeraldLive shrink-0 mt-0.5"></i>
+              <span>Strictly constrains answer generation to retrieved peer-reviewed study excerpts.</span>
+            </li>
+            <li class="flex items-start space-x-3">
+              <i data-lucide="check" class="w-4 h-4 text-emeraldLive shrink-0 mt-0.5"></i>
+              <span>Provides direct, clickable links to original PubMed records for every cited claim.</span>
+            </li>
+            <li class="flex items-start space-x-3">
+              <i data-lucide="check" class="w-4 h-4 text-emeraldLive shrink-0 mt-0.5"></i>
+              <span>Enforces empirical abstention: transparently refuses to guess when research is lacking.</span>
+            </li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- SECTION 5: FOUR-STAGE AUTONOMOUS PIPELINE                             -->
+  <!-- ===================================================================== -->
+  <section id="pipeline" class="py-24 border-t border-white/[0.06] bg-[#090E17]/60">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center max-w-2xl mx-auto mb-16">
+        <span class="font-mono text-xs text-cyanLight uppercase tracking-widest font-semibold">EXECUTION ARCHITECTURE</span>
+        <h2 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight mt-2">From Research Question to Scientific Evidence</h2>
+        <p class="text-textSecondary text-sm sm:text-base mt-3">An end-to-end 4-stage pipeline that guarantees verifiable provenance.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-6 relative">
+        <!-- Stage 1 -->
+        <div class="glass-card p-6 rounded-xl flex flex-col justify-between">
+          <div>
+            <div class="font-mono text-xs text-cyanLight uppercase tracking-widest font-bold">Stage 01</div>
+            <h3 class="text-lg font-bold text-white mt-2 mb-3">Live PubMed Retrieval</h3>
+            <p class="text-textSecondary text-xs leading-relaxed">
+              Connects to the NCBI PubMed E-Utilities API suite (<code class="text-cyanLight font-mono">esearch</code> & <code class="text-cyanLight font-mono">efetch</code>) to search biomedical literature and retrieve available peer-reviewed abstracts.
+            </p>
+          </div>
+          <div class="mt-6 pt-4 border-t border-white/[0.06] font-mono text-[10px] text-textMuted uppercase tracking-wider">
+            NCBI E-UTILITIES / XML
+          </div>
+        </div>
+
+        <!-- Stage 2 -->
+        <div class="glass-card p-6 rounded-xl flex flex-col justify-between">
+          <div>
+            <div class="font-mono text-xs text-cyanLight uppercase tracking-widest font-bold">Stage 02</div>
+            <h3 class="text-lg font-bold text-white mt-2 mb-3">Dense Vector Embeddings</h3>
+            <p class="text-textSecondary text-xs leading-relaxed">
+              Sentence Transformers converts research passages and user queries into 384-dimensional numerical representations that capture biomedical semantics.
+            </p>
+          </div>
+          <div class="mt-6 pt-4 border-t border-white/[0.06] font-mono text-[10px] text-textMuted uppercase tracking-wider">
+            ALL-MINILM-L6-V2 / 384-D
+          </div>
+        </div>
+
+        <!-- Stage 3 -->
+        <div class="glass-card p-6 rounded-xl flex flex-col justify-between">
+          <div>
+            <div class="font-mono text-xs text-cyanLight uppercase tracking-widest font-bold">Stage 03</div>
+            <h3 class="text-lg font-bold text-white mt-2 mb-3">FAISS Similarity Search</h3>
+            <p class="text-textSecondary text-xs leading-relaxed">
+              FAISS compares normalized vector embeddings to rapidly identify and rank research passages that are semantically relevant to the user's inquiry.
+            </p>
+          </div>
+          <div class="mt-6 pt-4 border-t border-white/[0.06] font-mono text-[10px] text-textMuted uppercase tracking-wider">
+            FAISS / COSINE SIMILARITY
+          </div>
+        </div>
+
+        <!-- Stage 4 -->
+        <div class="glass-card p-6 rounded-xl flex flex-col justify-between">
+          <div>
+            <div class="font-mono text-xs text-emerald-400 uppercase tracking-widest font-bold">Stage 04</div>
+            <h3 class="text-lg font-bold text-white mt-2 mb-3">Evidence-Grounded Responses</h3>
+            <p class="text-textSecondary text-xs leading-relaxed">
+              An optional OpenAI or Gemini model generates responses using strictly retrieved evidence, with direct references to corresponding PubMed records.
+            </p>
+          </div>
+          <div class="mt-6 pt-4 border-t border-white/[0.06] font-mono text-[10px] text-emerald-400 uppercase tracking-wider">
+            OPTIONAL LLM / PMID REFERENCES
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- SECTION 6: WHO USES EVIDENCEBOT?                                      -->
+  <!-- ===================================================================== -->
+  <section id="personas" class="py-24 border-t border-white/[0.06] relative">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center max-w-2xl mx-auto mb-16">
+        <span class="font-mono text-xs text-cyanLight uppercase tracking-widest font-semibold">AUDIENCE PERSONAS</span>
+        <h2 class="text-3xl sm:text-4xl font-extrabold text-white tracking-tight mt-2">Built for People Who Work With Scientific Evidence</h2>
+        <p class="text-textSecondary text-sm sm:text-base mt-3">Designed for critical researchers who cannot afford hallucinations in their workflows.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
+        <!-- Persona 1 -->
+        <div class="glass-card p-7 rounded-xl flex flex-col justify-between">
+          <div>
+            <div class="w-10 h-10 rounded-lg bg-cyanElectric/10 border border-cyanElectric/20 flex items-center justify-center text-cyanLight mb-5">
+              <i data-lucide="microscope" class="w-5 h-5"></i>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2">Clinical Researchers</h3>
+            <p class="text-textSecondary text-xs leading-relaxed mb-6">
+              Explore biomedical publications, identify relevant findings across trial cohorts, and accelerate early-stage literature reviews with verified PMIDs.
+            </p>
+          </div>
+          <div class="pt-4 border-t border-white/[0.08] text-xs font-medium text-cyanLight/90 italic">
+            "Spend less time searching across publications and more time evaluating the evidence."
+          </div>
+        </div>
+
+        <!-- Persona 2 -->
+        <div class="glass-card p-7 rounded-xl flex flex-col justify-between">
+          <div>
+            <div class="w-10 h-10 rounded-lg bg-cyanElectric/10 border border-cyanElectric/20 flex items-center justify-center text-cyanLight mb-5">
+              <i data-lucide="trending-up" class="w-5 h-5"></i>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2">Biotech & Life-Science Analysts</h3>
+            <p class="text-textSecondary text-xs leading-relaxed mb-6">
+              Explore scientific publications and investigate biological mechanisms relevant to emerging therapies and due-diligence evaluations.
+            </p>
+          </div>
+          <div class="pt-4 border-t border-white/[0.08] text-xs font-medium text-cyanLight/90 italic">
+            "Bring scientific literature into the research and due-diligence workflow."
+          </div>
+        </div>
+
+        <!-- Persona 3 -->
+        <div class="glass-card p-7 rounded-xl flex flex-col justify-between">
+          <div>
+            <div class="w-10 h-10 rounded-lg bg-emeraldLive/10 border border-emeraldLive/20 flex items-center justify-center text-emerald-400 mb-5">
+              <i data-lucide="graduation-cap" class="w-5 h-5"></i>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2">Medical & Pharmacology Students</h3>
+            <p class="text-textSecondary text-xs leading-relaxed mb-6">
+              Explore primary research, understand biological mechanisms, and follow citations back to the original publications rather than relying on guesses.
+            </p>
+          </div>
+          <div class="pt-4 border-t border-white/[0.08] text-xs font-medium text-emerald-400/90 italic">
+            "Learn from research evidence instead of relying only on generated summaries."
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- SECTION 7: FINAL CALL TO ACTION                                       -->
+  <!-- ===================================================================== -->
+  <section class="py-20 border-t border-white/[0.06] relative">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="p-10 sm:p-14 rounded-2xl border border-cyanElectric/30 bg-gradient-to-b from-[#0B1220] to-[#06090E] shadow-glowCyan text-center relative overflow-hidden">
+        
+        <!-- Ambient Top Glow -->
+        <div class="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-48 bg-cyanElectric/20 blur-3xl pointer-events-none"></div>
+
+        <span class="font-mono text-xs text-cyanLight uppercase tracking-widest font-semibold">GET STARTED TODAY</span>
+        <h2 class="text-3xl sm:text-5xl font-extrabold text-white tracking-tight mt-3 mb-4">
+          Better Biomedical Research Starts With Better Evidence.
+        </h2>
+        <p class="text-textSecondary text-sm sm:text-base max-w-2xl mx-auto mb-8 leading-relaxed">
+          Explore biomedical literature with an AI assistant designed to retrieve sources, ground its responses, and communicate uncertainty.
+        </p>
+
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <a id="ctaLaunchBtn" href="http://localhost:8501" target="_blank" class="w-full sm:w-auto inline-flex items-center justify-center px-8 py-3.5 rounded-md bg-cyanElectric hover:bg-cyanLight text-white font-semibold text-sm tracking-tight shadow-glowCyan transition-all transform hover:-translate-y-0.5">
+            <span>Launch EvidenceBot Free</span>
+            <i data-lucide="arrow-right" class="w-4 h-4 ml-2"></i>
+          </a>
+          <a href="#pipeline" class="w-full sm:w-auto inline-flex items-center justify-center px-8 py-3.5 rounded-md bg-white/[0.05] hover:bg-white/[0.1] border border-white/[0.1] text-white font-semibold text-sm tracking-tight transition-all">
+            <span>Explore Project Architecture</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================================================================== -->
+  <!-- SECTION 8: FOOTER                                                     -->
+  <!-- ===================================================================== -->
+  <footer class="border-t border-white/[0.08] bg-[#06090E] py-12">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col md:flex-row items-start justify-between gap-8 pb-10 border-b border-white/[0.06]">
+        
+        <!-- Brand & Description -->
+        <div class="max-w-sm">
+          <div class="flex items-center space-x-2.5 mb-3">
+            <img src="public/logo.svg" alt="EvidenceBot" class="w-6 h-6">
+            <span class="text-base font-bold text-white tracking-tight">EvidenceBot</span>
+          </div>
+          <p class="text-xs text-textSecondary leading-relaxed">
+            Biomedical Literature Intelligence Engine. Grounded scientific discovery powered by NCBI PubMed and dense vector retrieval.
+          </p>
+        </div>
+
+        <!-- Footer Links -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-8 text-xs text-textSecondary font-medium">
+          <div>
+            <div class="font-mono text-[11px] text-white uppercase tracking-wider mb-3">Platform</div>
+            <ul class="space-y-2">
+              <li><a href="#capabilities" class="hover:text-cyanLight transition-colors">Capabilities</a></li>
+              <li><a href="#pipeline" class="hover:text-cyanLight transition-colors">Architecture</a></li>
+              <li><a href="#telemetry" class="hover:text-cyanLight transition-colors">Telemetry</a></li>
+            </ul>
+          </div>
+          <div>
+            <div class="font-mono text-[11px] text-white uppercase tracking-wider mb-3">External</div>
+            <ul class="space-y-2">
+              <li><a href="https://github.com/mdatiyamehak12-debug/EvidenceBot" target="_blank" class="hover:text-cyanLight transition-colors">GitHub Repository</a></li>
+              <li><a href="https://pubmed.ncbi.nlm.nih.gov/" target="_blank" class="hover:text-cyanLight transition-colors">PubMed (NLM)</a></li>
+              <li><a href="https://www.ncbi.nlm.nih.gov/home/about/" target="_blank" class="hover:text-cyanLight transition-colors">NCBI Entrez</a></li>
+            </ul>
+          </div>
+          <div>
+            <div class="font-mono text-[11px] text-white uppercase tracking-wider mb-3">Governance</div>
+            <ul class="space-y-2">
+              <li><span class="text-textMuted">Version: v1.0.0</span></li>
+              <li><span class="text-textMuted">Status: Stage 1 Prototype</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Legal Disclaimer & Copyright -->
+      <div class="pt-8 flex flex-col md:flex-row items-center justify-between text-[11px] text-textMuted space-y-4 md:space-y-0">
+        <p class="max-w-3xl leading-relaxed">
+          <strong>Institutional Notice:</strong> For scientific research and educational discovery only. EvidenceBot is not a medical device and does not provide medical diagnosis or treatment recommendations. Always consult original research publications and qualified healthcare professionals.
+        </p>
+        <div class="font-mono text-textMuted shrink-0">
+          EVIDENCEBOT &bull; STAGE 1 RESEARCH PROTOTYPE
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts: Lucide Icons & Interactive Terminal Search Logic -->
+  <script>
+    // Initialize Lucide Icons
+    lucide.createIcons();
+
+    // Mobile Menu Toggle
+    const mobileBtn = document.getElementById('mobileMenuBtn');
+    const mobileMenu = document.getElementById('mobileMenu');
+    mobileBtn.addEventListener('click', () => {
+      mobileMenu.classList.toggle('hidden');
+    });
+
+    // Detect Live Public Server URL
+    // Checks if public_url.txt exists or sets fallback
+    const livePublicUrl = 'https://affected-investigate-exam-decorative.trycloudflare.com';
+    const launchButtons = ['navLaunchBtn', 'heroLaunchBtn', 'ctaLaunchBtn'];
+    launchButtons.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.href = livePublicUrl;
+    });
+
+    // Preset Queries Data for Simulation Demo
+    const queryDatabase = {
+      "Does vitamin D supplementation reduce respiratory tract infections?": {
+        answer: "Randomized controlled trials and meta-analyses indexed on PubMed demonstrate that regular daily or weekly vitamin D supplementation significantly reduces the risk of acute respiratory tract infections, particularly in individuals with severe baseline vitamin D deficiency (<25 nmol/L) [PMID: 34322844].",
+        confidence: "CONFIDENCE: HIGH",
+        confidenceColor: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+        excerpts: [
+          { pmid: "34322844", text: "In systematic reviews and individual patient data meta-analyses of randomized trials, vitamin D supplementation was safe and protected against acute respiratory tract infections overall (aOR 0.88, 95% CI 0.81 to 0.96)..." },
+          { pmid: "28202713", text: "Patients receiving daily or weekly doses without additional boluses experienced the most pronounced protective effects, especially those presenting with baseline 25-hydroxyvitamin D levels below 25 nmol/L." }
+        ]
+      },
+      "Does zinc supplementation reduce the duration or severity of common cold symptoms?": {
+        answer: "A synthesis of randomized placebo-controlled trials confirms that zinc supplementation administered as zinc gluconate or acetate lozenges within 24 hours of onset reduces the duration of common cold symptoms in adults by an average of 33% [PMID: 38719213, PMID: 23775705].",
+        confidence: "CONFIDENCE: HIGH",
+        confidenceColor: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+        excerpts: [
+          { pmid: "38719213", text: "Meta-analyses of high-dose zinc lozenge trials (>75 mg/day) demonstrated a statistically significant reduction in cold duration by approximately 3 days without serious adverse events." },
+          { pmid: "23775705", text: "Intake of zinc was associated with a significant reduction in the duration of cold symptoms in both adult and pediatric cohorts when initiated early in the disease course." }
+        ]
+      },
+      "What is the cellular mechanism of action of metformin in type 2 diabetes?": {
+        answer: "Metformin exerts its primary antihyperglycemic action by suppressing hepatic gluconeogenesis through the activation of AMP-activated protein kinase (AMPK) and inhibition of mitochondrial respiratory chain Complex I, which restores cellular energy homeostasis [PMID: 25414349].",
+        confidence: "CONFIDENCE: HIGH",
+        confidenceColor: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20",
+        excerpts: [
+          { pmid: "25414349", text: "Metformin inhibits hepatic gluconeogenesis via transient inhibition of the mitochondrial electron transport chain complex I, leading to decreased ATP/AMP ratios and subsequent activation of AMPK..." },
+          { pmid: "28373489", text: "Molecular pathways also demonstrate reduced cyclic AMP (cAMP) signaling in response to glucagon, further blocking gluconeogenic enzyme transcription in hepatocytes." }
+        ]
+      },
+      "Can spirulina microalgae supplementation cure multiple sclerosis in human patients?": {
+        answer: "EMPIRICAL ABSTENTION ACTIVATED: I could not find sufficient reliable evidence in the retrieved peer-reviewed literature to substantiate that spirulina cures multiple sclerosis. Current literature is restricted to in-vitro and preclinical rodent autoimmune models; human clinical trials validating curative efficacy do not exist.",
+        confidence: "ABSTENTION: INSUFFICIENT DATA",
+        confidenceColor: "text-rose-400 bg-rose-500/10 border-rose-500/20",
+        excerpts: [
+          { pmid: "26444857", text: "Preclinical models of experimental autoimmune encephalomyelitis (EAE) in rodents show anti-inflammatory cytokine modulation with phycocyanin extracts, but clinical trial endpoints in humans have not been established." }
+        ]
+      }
+    };
+
+    function setQuery(text) {
+      document.getElementById('demoInput').value = text;
+      runSimulation();
+    }
+
+    function runSimulation() {
+      const q = document.getElementById('demoInput').value.trim();
+      const s1 = document.getElementById('step1');
+      const s2 = document.getElementById('step2');
+      const s3 = document.getElementById('step3');
+      const s4 = document.getElementById('step4');
+
+      // Reset step highlights
+      [s1, s2, s3, s4].forEach(s => {
+        s.className = 'p-3 rounded-lg border border-white/[0.08] bg-white/[0.02] transition-all';
+      });
+
+      // Animate Step 1
+      s1.className = 'p-3 rounded-lg border border-cyanElectric/60 bg-cyanElectric/20 shadow-glowCyan transition-all';
+      
+      setTimeout(() => {
+        s1.className = 'p-3 rounded-lg border border-white/[0.08] bg-white/[0.02] transition-all';
+        s2.className = 'p-3 rounded-lg border border-cyanElectric/60 bg-cyanElectric/20 shadow-glowCyan transition-all';
+      }, 350);
+
+      setTimeout(() => {
+        s2.className = 'p-3 rounded-lg border border-white/[0.08] bg-white/[0.02] transition-all';
+        s3.className = 'p-3 rounded-lg border border-cyanElectric/60 bg-cyanElectric/20 shadow-glowCyan transition-all';
+      }, 700);
+
+      setTimeout(() => {
+        s3.className = 'p-3 rounded-lg border border-white/[0.08] bg-white/[0.02] transition-all';
+        s4.className = 'p-3 rounded-lg border border-emerald-500/60 bg-emerald-500/20 shadow-glowEmerald transition-all';
+
+        // Render result
+        const match = queryDatabase[q] || queryDatabase["Does vitamin D supplementation reduce respiratory tract infections?"];
+        
+        let answerFormatted = match.answer;
+        // Inject PubMed links into PMIDs
+        answerFormatted = answerFormatted.replace(/\[PMID:\s*(\d+)\]/g, '<a href="https://pubmed.ncbi.nlm.nih.gov/$1/" target="_blank" class="text-cyanLight hover:underline font-mono text-xs font-semibold">[PMID: $1]</a>');
+        
+        document.getElementById('demoAnswerText').innerHTML = answerFormatted;
+        
+        let excerptsHtml = '';
+        match.excerpts.forEach(e => {
+          excerptsHtml += `
+            <div class="p-2.5 rounded bg-white/[0.02] border-l-2 border-cyanElectric text-xs text-textSecondary">
+              <a href="https://pubmed.ncbi.nlm.nih.gov/${e.pmid}/" target="_blank" class="font-mono text-cyanLight font-semibold hover:underline">[PMID: ${e.pmid}]</a>: "${e.text}"
+            </div>
+          `;
+        });
+        document.getElementById('demoExcerpts').innerHTML = excerptsHtml;
+      }, 1050);
+    }
+
+    document.getElementById('runDemoBtn').addEventListener('click', runSimulation);
+  </script>
+</body>
+</html>

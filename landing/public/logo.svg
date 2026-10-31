@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="40" height="40" fill="none">
+  <rect width="40" height="40" rx="10" fill="#091220"/>
+  <rect x="0.5" y="0.5" width="39" height="39" rx="9.5" stroke="#0EA5E9" stroke-opacity="0.3"/>
+  <!-- Central Diamond / Hexagon Motif -->
+  <path d="M20 7L31 13.5V26.5L20 33L9 26.5V13.5L20 7Z" stroke="#38BDF8" stroke-width="1.8" stroke-linejoin="round"/>
+  <!-- Inner Data Core -->
+  <circle cx="20" cy="20" r="4.5" fill="#0EA5E9"/>
+  <!-- Synaptic Nodes -->
+  <circle cx="20" cy="7" r="2" fill="#10B981"/>
+  <circle cx="31" cy="26.5" r="2" fill="#10B981"/>
+  <circle cx="9" cy="26.5" r="2" fill="#10B981"/>
+  <!-- Dynamic Cross Connectors -->
+  <path d="M20 15.5V10M23.5 22.5L28.5 25.5M16.5 22.5L11.5 25.5" stroke="#38BDF8" stroke-width="1.5" stroke-linecap="round"/>
+</svg>
