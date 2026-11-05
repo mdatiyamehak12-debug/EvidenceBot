@@ -162,7 +162,8 @@ class PubMedRetriever:
         term: str,
         max_results: int,
         min_year: Optional[int] = None,
-        max_year: Optional[int] = None
+        max_year: Optional[int] = None,
+        article_type: Optional[str] = None
     ) -> List[str]:
         """
         Resilient PubMed search fallback querying Europe PMC (mirror of PubMed / MEDLINE).
@@ -175,13 +176,24 @@ class PubMedRetriever:
                 y_max = max_year if max_year is not None else 2026
                 q = f"({term}) AND PUB_YEAR:[{y_min} TO {y_max}]"
             
+            if article_type and article_type.lower() not in ("all", "all types", "all article types"):
+                at_lower = article_type.lower()
+                if "clinical trial" in at_lower:
+                    q = f"({q}) AND (PUB_TYPE:\"clinical trial\")"
+                elif "randomized" in at_lower:
+                    q = f"({q}) AND (PUB_TYPE:\"randomized controlled trial\")"
+                elif "meta-analysis" in at_lower or "systematic" in at_lower:
+                    q = f"({q}) AND (PUB_TYPE:\"review\" OR PUB_TYPE:\"meta-analysis\")"
+                elif "review" in at_lower:
+                    q = f"({q}) AND (PUB_TYPE:\"review\")"
+
             url = "https://www.ebi.ac.uk/europepmc/webservices/rest/search"
             params = {
                 "query": q,
                 "format": "json",
-                "pageSize": str(min(max_results, config.MAX_CANDIDATE_PAPERS))
+                "pageSize": str(min(max(max_results, 1), config.MAX_CANDIDATE_PAPERS))
             }
-            resp = requests.get(url, params=params, timeout=12)
+            resp = requests.get(url, params=params, timeout=15)
             if resp.status_code == 200:
                 data = resp.json()
                 results = data.get("resultList", {}).get("result", [])
@@ -200,16 +212,17 @@ class PubMedRetriever:
             return []
         papers: List[PaperMetadata] = []
         try:
-            query_str = " OR ".join([f"ext_id:{p}" for p in pmids[:15]])
+            max_fetch = min(len(pmids), config.MAX_CANDIDATE_PAPERS)
+            query_str = " OR ".join([f"ext_id:{p}" for p in pmids[:max_fetch]])
             query_str = f"({query_str}) src:med"
             url = "https://www.ebi.ac.uk/europepmc/webservices/rest/search"
             params = {
                 "query": query_str,
                 "format": "json",
                 "resultType": "core",
-                "pageSize": "25"
+                "pageSize": str(min(max(max_fetch, 25), 100))
             }
-            resp = requests.get(url, params=params, timeout=15)
+            resp = requests.get(url, params=params, timeout=18)
             if resp.status_code == 200:
                 data = resp.json()
                 for item in data.get("resultList", {}).get("result", []):
@@ -247,9 +260,10 @@ class PubMedRetriever:
         term: str,
         max_results: int,
         min_year: Optional[int] = None,
-        max_year: Optional[int] = None
+        max_year: Optional[int] = None,
+        article_type: Optional[str] = None
     ) -> List[str]:
-        """Helper to run a single ESearch request with retry logic and date filter."""
+        """Helper to run a single ESearch request with retry logic and date/article type filters."""
         self._apply_rate_limit()
 
         params = self._get_base_params()
@@ -266,11 +280,23 @@ class PubMedRetriever:
             if max_year is not None:
                 params["maxdate"] = str(max_year)
 
+        # Apply article type filter to PubMed query syntax if requested
+        if article_type and article_type.lower() not in ("all", "all types", "all article types"):
+            at_lower = article_type.lower()
+            if "clinical trial" in at_lower:
+                search_term = f'({search_term}) AND ("clinical trial"[Publication Type])'
+            elif "randomized" in at_lower:
+                search_term = f'({search_term}) AND ("randomized controlled trial"[Publication Type])'
+            elif "meta-analysis" in at_lower or "systematic" in at_lower:
+                search_term = f'({search_term}) AND ("meta-analysis"[Publication Type] OR "systematic review"[Publication Type])'
+            elif "review" in at_lower:
+                search_term = f'({search_term}) AND ("review"[Publication Type])'
+
         params.update({
             "db": "pubmed",
             "term": search_term,
             "retmode": "json",
-            "retmax": str(min(max_results, config.MAX_CANDIDATE_PAPERS)),
+            "retmax": str(min(max(max_results, 1), config.MAX_CANDIDATE_PAPERS)),
             "sort": "relevance",
         })
 
@@ -293,7 +319,7 @@ class PubMedRetriever:
                 # If NCBI server error (e.g. 500), fall back to Europe PMC PubMed mirror
                 if response.status_code >= 500:
                     logger.warning("NCBI ESearch server error (HTTP 500). Using Europe PMC PubMed mirror.")
-                    return self._search_europepmc(term, max_results, min_year, max_year)
+                    return self._search_europepmc(term, max_results, min_year, max_year, article_type)
 
                 response.raise_for_status()
                 data = response.json()
@@ -303,21 +329,39 @@ class PubMedRetriever:
             except requests.Timeout:
                 logger.warning(f"NCBI ESearch timeout on attempt {attempt + 1}/{max_retries}.")
                 if attempt == max_retries - 1:
-                    return self._search_europepmc(term, max_results, min_year, max_year)
+                    return self._search_europepmc(term, max_results, min_year, max_year, article_type)
                 time.sleep(1.0)
             except Exception as req_err:
                 logger.error(f"Error executing PubMed ESearch for '{term}': {req_err}")
-                return self._search_europepmc(term, max_results, min_year, max_year)
+                return self._search_europepmc(term, max_results, min_year, max_year, article_type)
 
-        return self._search_europepmc(term, max_results, min_year, max_year)
+        return self._search_europepmc(term, max_results, min_year, max_year, article_type)
 
     def search(
         self,
         query: str,
         max_results: int = config.DEFAULT_MAX_PAPERS,
         min_year: Optional[int] = None,
-        max_year: Optional[int] = None
+        max_year: Optional[int] = None,
+        article_type: Optional[str] = None
     ) -> List[str]:
+        """
+        Executes an ESearch query on PubMed to obtain relevant PMIDs within year and type range.
+        Uses query optimization for natural language questions.
+        """
+        clean_query = query.strip()
+        if not clean_query:
+            return []
+
+        # 1. First attempt with cleaned keywords
+        optimized_query = build_pubmed_query(clean_query)
+        pmids = self._execute_esearch(optimized_query, max_results, min_year=min_year, max_year=max_year, article_type=article_type)
+
+        # 2. Fallback to raw query if keyword optimization produced 0 results
+        if not pmids and optimized_query != clean_query:
+            pmids = self._execute_esearch(clean_query, max_results, min_year=min_year, max_year=max_year, article_type=article_type)
+
+        return pmids
         """
         Executes an ESearch query on PubMed to obtain relevant PMIDs within year range.
         Uses query optimization for natural language questions.
@@ -556,13 +600,20 @@ class PubMedRetriever:
         query: str,
         max_results: int = config.DEFAULT_MAX_PAPERS,
         min_year: Optional[int] = None,
-        max_year: Optional[int] = None
+        max_year: Optional[int] = None,
+        article_type: Optional[str] = None
     ) -> SearchResult:
         """
-        Unified method: Searches PubMed and fetches structured metadata for all matches within year range.
+        Unified method: Searches PubMed and fetches structured metadata for all matches within year and type range.
         Returns a SearchResult object distinguishing empty search from missing abstracts.
         """
-        pmids = self.search(query, max_results=max_results, min_year=min_year, max_year=max_year)
+        pmids = self.search(
+            query,
+            max_results=max_results,
+            min_year=min_year,
+            max_year=max_year,
+            article_type=article_type
+        )
         
         if not pmids:
             return SearchResult(
@@ -596,10 +647,17 @@ def search_pubmed(
     query: str,
     max_results: int = config.DEFAULT_MAX_PAPERS,
     min_year: Optional[int] = None,
-    max_year: Optional[int] = None
+    max_year: Optional[int] = None,
+    article_type: Optional[str] = None
 ) -> List[str]:
     """Convenience function to search PubMed for PMIDs."""
-    return _default_retriever.search(query, max_results=max_results, min_year=min_year, max_year=max_year)
+    return _default_retriever.search(
+        query,
+        max_results=max_results,
+        min_year=min_year,
+        max_year=max_year,
+        article_type=article_type
+    )
 
 
 def fetch_paper_details(

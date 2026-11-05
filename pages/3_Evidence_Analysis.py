@@ -1,12 +1,11 @@
 """
-EvidenceBot - Page 3: Evidence & Grounding Analysis
-==================================================
+Bio EvidenceBot - Grounding & Verification Audit (Page 3)
+=========================================================
 Deep scientific verification dashboard:
 1. Audits empirical support against PubMed peer-reviewed literature.
 2. Performs comprehensive citation validation (PMID existence, metadata fidelity, claim relevance).
 3. Identifies missing citations and unsupported claims.
 4. Breaks down abstention diagnostics and trigger conditions.
-Zero informal emojis; deeptech telemetry design.
 """
 
 import streamlit as st
@@ -31,17 +30,14 @@ st.set_page_config(
 apply_theme()
 render_sidebar(current_page="Grounding & Audit")
 
-# Page Header
+# Page Header Card
 st.markdown(
     """
-    <div style="margin-bottom: 22px;">
-        <div style="margin-bottom:6px;">
-            <span class="mono-tag" style="color:#0f766e; background:#f0fdfa; border:1px solid #99f6e4;">
-                VERIFICATION & AUDIT CONSOLE
-            </span>
-        </div>
-        <h2 style="color: #0f172a; margin-bottom: 4px; font-weight:800; letter-spacing:-0.03em;">Grounding & Verification Audit</h2>
-        <p style="color: #475569; margin: 0; font-size:0.98rem;">Atomic claim-level fact-checking, citation provenance verification, and scientific abstention diagnostics.</p>
+    <div class="dashboard-header">
+        <div class="header-eyebrow">VERIFICATION & AUDIT CONSOLE &bull; ATOMIC CLAIM CHECK &bull; NLI AUDIT</div>
+        <h1 style="font-size: 1.85rem !important;">Grounding & Verification Audit</h1>
+        <div class="header-tagline">Deterministic Citation Provenance & Evidence Verification</div>
+        <p class="header-subtitle">Atomic claim-level fact-checking, citation provenance verification, and scientific abstention diagnostics.</p>
     </div>
     """,
     unsafe_allow_html=True
@@ -62,14 +58,7 @@ if "latest_result" in st.session_state:
     # =====================================================================
     # 1. Verification Metric Cards
     # =====================================================================
-    st.markdown(
-        """
-        <div style="margin-bottom:8px;">
-            <span class="mono-tag" style="color:#94a3b8; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);">TELEMETRY OVERVIEW</span>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    st.markdown("#### Grounding Telemetry")
 
     claims_data = res.get("verified_claims", [])
     if not claims_data and answer_text and chunks and not is_abstained:
@@ -157,27 +146,27 @@ if "latest_result" in st.session_state:
             for item in filtered_claims:
                 status_badge = render_claim_status_badge(item.get("status", "UNCERTAIN_HUMAN_REVIEW"))
                 study_badge = f'<span class="badge-pill badge-prelim">{item.get("study_type", "Biomedical Literature")}</span>'
-                abstract_badge = '<span class="badge-pill badge-cyan">Abstract-Level Evidence</span>'
+                abstract_badge = '<span class="badge-pill badge-teal">Abstract-Level Evidence</span>'
                 score_badge = f'<span class="badge-pill badge-moderate">SIM: {item.get("confidence_score", 0.0):.2f}</span>'
 
                 st.markdown(
                     f"""
-                    <div class="bio-card" style="margin-bottom:12px;">
+                    <div class="bio-card" style="margin-bottom:12px; border-left:3px solid #168C83;">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                            <span style="font-weight:700; color:#38bdf8; font-family:'JetBrains Mono', monospace; font-size:0.85rem;">ASSERTION #{item.get('claim_id')}</span>
+                            <span style="font-weight:700; color:#14243A; font-family:'JetBrains Mono', monospace; font-size:0.85rem;">ASSERTION #{item.get('claim_id')}</span>
                             <div>
                                 {status_badge}
                                 {score_badge}
                             </div>
                         </div>
-                        <div style="font-size:0.98rem; font-weight:500; color:#f8fafc; margin-bottom:10px;">
+                        <div style="font-size:0.96rem; font-weight:600; color:#14243A; margin-bottom:10px;">
                             "{item.get('claim_text')}"
                         </div>
                         <div style="margin-bottom:10px;">
                             {study_badge}
                             {abstract_badge}
                         </div>
-                        <div style="background-color:rgba(255,255,255,0.03); border-left:2px solid #0ea5e9; padding:10px 14px; border-radius:4px; font-size:0.86rem; color:#cbd5e1; margin-bottom:10px;">
+                        <div style="background-color:#F8FAFC; border-left:2px solid #168C83; padding:10px 14px; border-radius:4px; font-size:0.86rem; color:#4B5563; margin-bottom:10px;">
                             <strong>Verification Logic:</strong> {item.get('reason')}
                         </div>
                     </div>
@@ -215,23 +204,23 @@ if "latest_result" in st.session_state:
         with col_cit1:
             st.markdown(
                 f"""
-                <div class="bio-card" style="border-left: 3px solid #10b981;">
+                <div class="stat-tile" style="border-left: 3px solid #10B981;">
                     <div class="stat-label">Verified PubMed Citations</div>
-                    <div class="stat-value" style="color:#34d399;">{len(verified_citations)}</div>
-                    <small style="color:#64748b;">Authentic PMIDs matched directly to NCBI database records.</small>
+                    <div class="stat-value" style="color:#047857;">{len(verified_citations)}</div>
+                    <small style="color:#6B7280;">Authentic PMIDs matched directly to NCBI database records.</small>
                 </div>
                 """,
                 unsafe_allow_html=True
             )
         with col_cit2:
-            h_color = "#f43f5e" if hallucinated_pmids else "#10b981"
-            h_text_color = "#fb7185" if hallucinated_pmids else "#34d399"
+            h_color = "#DC2626" if hallucinated_pmids else "#10B981"
+            h_text_color = "#B91C1C" if hallucinated_pmids else "#047857"
             st.markdown(
                 f"""
-                <div class="bio-card" style="border-left: 3px solid {h_color};">
+                <div class="stat-tile" style="border-left: 3px solid {h_color};">
                     <div class="stat-label">Unverified Reference Inventions</div>
                     <div class="stat-value" style="color:{h_text_color};">{len(hallucinated_pmids)}</div>
-                    <small style="color:#64748b;">Invented PMIDs that did not exist in retrieved literature.</small>
+                    <small style="color:#6B7280;">Invented PMIDs that did not exist in retrieved literature.</small>
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -245,29 +234,29 @@ if "latest_result" in st.session_state:
                 authors_str = ", ".join(v_cit.get("authors", [])[:3])
                 if len(v_cit.get("authors", [])) > 3:
                     authors_str += " et al."
-                
+
                 doi_str = f" | DOI: {v_cit.get('doi')}" if v_cit.get("doi") else ""
                 r_score = v_cit.get("relevance_score", 0.0)
                 r_badge = f'<span class="badge-pill badge-high">RELEVANCE: {r_score:.2f}</span>' if r_score >= 0.40 else f'<span class="badge-pill badge-moderate">RELEVANCE: {r_score:.2f}</span>'
 
                 st.markdown(
                     f"""
-                    <div class="bio-card" style="padding:14px 18px; margin-bottom:10px;">
+                    <div class="paper-card" style="padding:14px 18px; margin-bottom:10px;">
                         <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px;">
                             <div>
-                                <a href="{v_cit.get('url')}" target="_blank" style="font-weight:700; color:#38bdf8; text-decoration:none; font-size:0.98rem; letter-spacing:-0.015em;">
+                                <a href="{v_cit.get('url')}" target="_blank" style="font-weight:700; color:#14243A; text-decoration:none; font-size:0.98rem; letter-spacing:-0.015em;">
                                     {v_cit.get('title')} &rarr;
                                 </a>
-                                <div style="font-size:0.82rem; color:#94a3b8; margin-top:2px;">
+                                <div style="font-size:0.82rem; color:#6B7280; margin-top:2px;">
                                     {authors_str} &bull; <em>{v_cit.get('journal', 'Journal')}</em> ({v_cit.get('year', 'N/A')}){doi_str}
                                 </div>
                             </div>
                             <div>
                                 {r_badge}
-                                <span class="mono-tag" style="background:#111827; color:#38bdf8; border:1px solid rgba(14,165,233,0.3);">PMID {v_cit.get('pmid')}</span>
+                                <span class="mono-tag" style="background:#EBF8F7; color:#168C83; border:1px solid #99E3DD;">PMID {v_cit.get('pmid')}</span>
                             </div>
                         </div>
-                        <div style="background-color:rgba(255,255,255,0.03); border-left:2px solid #0ea5e9; padding:8px 12px; margin-top:10px; border-radius:4px; font-size:0.86rem; color:#cbd5e1;">
+                        <div style="background-color:#F8FAFC; border-left:2px solid #168C83; padding:8px 12px; margin-top:10px; border-radius:4px; font-size:0.86rem; color:#4B5563;">
                             <strong>Asserted Context:</strong> "{v_cit.get('claim_context')}"
                         </div>
                     </div>
@@ -289,10 +278,10 @@ if "latest_result" in st.session_state:
             for uc in unsupported_claims:
                 st.markdown(
                     f"""
-                    <div class="bio-card" style="border-left:3px solid #f59e0b; margin-bottom:8px;">
+                    <div class="bio-card" style="border-left:3px solid #F59E0B; margin-bottom:8px;">
                         <strong>Claim:</strong> "{uc.get('claim')}"<br>
                         <strong>Cited PMID:</strong> <code>{uc.get('cited_pmid')}</code> | <strong>Relevance:</strong> {uc.get('relevance_score'):.2f}<br>
-                        <small style="color:#64748b;"><strong>Audit Note:</strong> {uc.get('reason')}</small>
+                        <small style="color:#6B7280;"><strong>Audit Note:</strong> {uc.get('reason')}</small>
                     </div>
                     """,
                     unsafe_allow_html=True
@@ -307,15 +296,15 @@ if "latest_result" in st.session_state:
 
         # 5 Trigger Conditions Overview
         st.markdown("##### The 5 Deterministic Abstention Triggers:")
-        
+
         c_tr1, c_tr2, c_tr3, c_tr4, c_tr5 = st.columns(5)
         with c_tr1:
             st.markdown(
                 """
                 <div class="stat-tile" style="text-align:center; padding:12px;">
                     <div class="stat-label">Condition 01</div>
-                    <strong style="font-size:0.88rem; color:#0f172a;">Zero Records</strong>
-                    <div style="font-size:0.75rem; color:#64748b;">Empty NCBI retrieval</div>
+                    <strong style="font-size:0.88rem; color:#14243A;">Zero Records</strong>
+                    <div style="font-size:0.75rem; color:#6B7280;">Empty NCBI retrieval</div>
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -325,8 +314,8 @@ if "latest_result" in st.session_state:
                 """
                 <div class="stat-tile" style="text-align:center; padding:12px;">
                     <div class="stat-label">Condition 02</div>
-                    <strong style="font-size:0.88rem; color:#0f172a;">Title Only</strong>
-                    <div style="font-size:0.75rem; color:#64748b;">Missing abstract text</div>
+                    <strong style="font-size:0.88rem; color:#14243A;">Title Only</strong>
+                    <div style="font-size:0.75rem; color:#6B7280;">Missing abstract text</div>
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -336,8 +325,8 @@ if "latest_result" in st.session_state:
                 """
                 <div class="stat-tile" style="text-align:center; padding:12px;">
                     <div class="stat-label">Condition 03</div>
-                    <strong style="font-size:0.88rem; color:#0f172a;">Low Relevance</strong>
-                    <div style="font-size:0.75rem; color:#64748b;">Similarity below threshold</div>
+                    <strong style="font-size:0.88rem; color:#14243A;">Low Relevance</strong>
+                    <div style="font-size:0.75rem; color:#6B7280;">Similarity below threshold</div>
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -347,8 +336,8 @@ if "latest_result" in st.session_state:
                 """
                 <div class="stat-tile" style="text-align:center; padding:12px;">
                     <div class="stat-label">Condition 04</div>
-                    <strong style="font-size:0.88rem; color:#0f172a;">Contradictions</strong>
-                    <div style="font-size:0.75rem; color:#64748b;">Conflicting trial outcomes</div>
+                    <strong style="font-size:0.88rem; color:#14243A;">Contradictions</strong>
+                    <div style="font-size:0.75rem; color:#6B7280;">Conflicting trial outcomes</div>
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -358,8 +347,8 @@ if "latest_result" in st.session_state:
                 """
                 <div class="stat-tile" style="text-align:center; padding:12px;">
                     <div class="stat-label">Condition 05</div>
-                    <strong style="font-size:0.88rem; color:#0f172a;">Unproven Claim</strong>
-                    <div style="font-size:0.75rem; color:#64748b;">No grounding excerpt</div>
+                    <strong style="font-size:0.88rem; color:#14243A;">Unproven Claim</strong>
+                    <div style="font-size:0.75rem; color:#6B7280;">No grounding excerpt</div>
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -371,12 +360,12 @@ if "latest_result" in st.session_state:
             st.markdown(
                 f"""
                 <div class="abstention-box">
-                    <h4 style="color:#fb7185; margin-top:0;">Empirical Abstention Enforced</h4>
-                    <p style="font-weight:600; font-size:1.02rem; color:#fecdd3;">
-                        "{config.ABSTENTION_MESSAGE}"
+                    <h4 style="color:#991B1B; margin-top:0;">Empirical Abstention Enforced</h4>
+                    <p style="font-weight:600; font-size:1.02rem; color:#991B1B;">
+                        No sufficient scientific evidence found for this query.
                     </p>
-                    <hr style="border:0; border-top:1px solid rgba(244,63,94,0.3); margin:12px 0;">
-                    <ul style="line-height:1.8; color:#e2e8f0; font-size:0.88rem; font-family:'JetBrains Mono', monospace;">
+                    <hr style="border:0; border-top:1px solid #FECACA; margin:12px 0;">
+                    <ul style="line-height:1.8; color:#374151; font-size:0.88rem; font-family:'JetBrains Mono', monospace;">
                         <li><strong>Query Ingestion:</strong> {ab_rep.get('search_query', question)}</li>
                         <li><strong>Candidate Records:</strong> {ab_rep.get('papers_retrieved_count', len(papers))} publication(s)</li>
                         <li><strong>Trigger Diagnosis:</strong> {ab_rep.get('reason', res.get('reason', 'N/A'))}</li>
@@ -398,9 +387,9 @@ if "latest_result" in st.session_state:
     with col_c1:
         st.markdown(
             """
-            <div class="stat-tile" style="border-left: 3px solid #f59e0b;">
-                <div class="stat-label" style="color:#fbbf24;">Correlation vs. Causation</div>
-                <p style="font-size:0.86rem; color:#94a3b8; margin-top:6px; line-height:1.6;">
+            <div class="stat-tile" style="border-left: 3px solid #F59E0B;">
+                <div class="stat-label" style="color:#D97706;">Correlation vs. Causation</div>
+                <p style="font-size:0.86rem; color:#4B5563; margin-top:6px; line-height:1.6;">
                     Epidemiological cohort studies routinely observe that deficient serum biomarker levels 
                     correlate with elevated disease risk. However, correlation alone does not prove that therapeutic 
                     supplementation reverses disease endpoints. EvidenceBot actively downgrades causal claims when only 
@@ -414,9 +403,9 @@ if "latest_result" in st.session_state:
     with col_c2:
         st.markdown(
             """
-            <div class="stat-tile" style="border-left: 3px solid #0ea5e9;">
-                <div class="stat-label" style="color:#38bdf8;">Abstract-Level Literature Boundary</div>
-                <p style="font-size:0.86rem; color:#94a3b8; margin-top:6px; line-height:1.6;">
+            <div class="stat-tile" style="border-left: 3px solid #168C83;">
+                <div class="stat-label" style="color:#168C83;">Abstract-Level Literature Boundary</div>
+                <p style="font-size:0.86rem; color:#4B5563; margin-top:6px; line-height:1.6;">
                     All retrieved excerpts represent peer-reviewed <strong>abstract summaries</strong> indexed on NCBI PubMed. 
                     Full study protocols, adverse-event tables, sub-group stratification, and complete statistical distributions 
                     require review of full-text publications.
@@ -427,6 +416,6 @@ if "latest_result" in st.session_state:
         )
 
 else:
-    st.info("No active query in session. Execute a synthesis on the Evidence Synthesis console to view grounding telemetry and diagnostics.")
+    st.info("No active query in session. Execute a synthesis on the Research Dashboard to view grounding telemetry and diagnostics.")
 
 render_disclaimer()

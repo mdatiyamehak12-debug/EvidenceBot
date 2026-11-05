@@ -95,10 +95,11 @@ def run_rag_pipeline(
     retriever: Optional[PubMedRetriever] = None,
     min_year: Optional[int] = None,
     max_year: Optional[int] = None,
+    article_type: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Executes the complete RAG pipeline with strict citation validation and abstention guards.
-    Applies publication year filtering when min_year or max_year are provided.
+    Applies publication year and article type filtering when provided.
     """
     clean_question = question.strip()
     if not clean_question:
@@ -133,14 +134,23 @@ def run_rag_pipeline(
             clean_question,
             max_results=max_papers,
             min_year=min_year,
-            max_year=max_year
+            max_year=max_year,
+            article_type=article_type
         )
     except TypeError:
         # Backward compatibility for mock retrievers in unit tests
-        search_payload = active_retriever.retrieve(
-            clean_question,
-            max_results=max_papers
-        )
+        try:
+            search_payload = active_retriever.retrieve(
+                clean_question,
+                max_results=max_papers,
+                min_year=min_year,
+                max_year=max_year
+            )
+        except TypeError:
+            search_payload = active_retriever.retrieve(
+                clean_question,
+                max_results=max_papers
+            )
 
     # Condition 1: No relevant papers retrieved
     if search_payload.is_empty or not search_payload.papers:

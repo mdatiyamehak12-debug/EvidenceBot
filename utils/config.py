@@ -33,9 +33,9 @@ NCBI_TOOL_NAME = "EvidenceBot_Biomedical_Assistant"
 # Standard PubMed web link format for citing papers
 PUBMED_BASE_URL = "https://pubmed.ncbi.nlm.nih.gov/"
 
-# Maximum number of papers to fetch per search
-DEFAULT_MAX_PAPERS = 6
-MAX_CANDIDATE_PAPERS = 15
+# Maximum number of papers to fetch per search (supports manual limit up to 100)
+DEFAULT_MAX_PAPERS = 10
+MAX_CANDIDATE_PAPERS = 100
 
 # -------------------------------------------------------------------------
 # 3. Vector Embeddings & Similarity Search Settings

@@ -1,12 +1,13 @@
 """
-EvidenceBot - Page 1: Evidence Synthesis Engine
-================================================
+Bio EvidenceBot - Evidence Synthesis Console (Page 1)
+======================================================
 Autonomous literature synthesis pipeline: queries PubMed & Europe PMC,
 indexes with FAISS dense vectors, evaluates sufficiency against cosine thresholds,
 synthesizes answers, and verifies citations.
 """
 
 import streamlit as st
+from datetime import datetime
 from utils import config
 from utils.ui_components import (
     apply_theme,
@@ -21,28 +22,25 @@ from backend.rag_pipeline import run_rag_pipeline
 
 # Configure page
 st.set_page_config(
-    page_title="EvidenceBot – Evidence Synthesis",
+    page_title="EvidenceBot – Evidence Synthesis Console",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Apply unified styling and sidebar
+# Apply unified scientific design theme & sidebar
 apply_theme()
 render_sidebar(current_page="Evidence Synthesis")
 
 CURRENT_YEAR = 2026
 
-# Page Header
+# Page Header Card
 st.markdown(
     """
-    <div style="margin-bottom: 22px;">
-        <div style="margin-bottom:6px;">
-            <span class="mono-tag" style="color:#0f766e; background:#f0fdfa; border:1px solid #99f6e4;">
-                SYNTHESIS ENGINE &bull; RAG PIPELINE
-            </span>
-        </div>
-        <h2 style="color: #0f172a; margin-bottom: 4px; font-weight:800; letter-spacing:-0.03em;">Evidence Synthesis Console</h2>
-        <p style="color: #475569; margin: 0; font-size:0.98rem;">Submit a biomedical, pharmacological, or clinical inquiry to synthesize peer-reviewed literature with deterministic citation tracing.</p>
+    <div class="dashboard-header">
+        <div class="header-eyebrow">NATIONAL LIBRARY OF MEDICINE &bull; SYNTHESIS ENGINE &bull; RAG PIPELINE</div>
+        <h1 style="font-size: 1.85rem !important;">Evidence Synthesis Console</h1>
+        <div class="header-tagline">AI-Powered Biomedical Research Assistant</div>
+        <p class="header-subtitle">Submit a biomedical, pharmacological, or clinical inquiry to synthesize peer-reviewed literature with deterministic citation tracing.</p>
     </div>
     """,
     unsafe_allow_html=True
@@ -55,266 +53,284 @@ if prefill_query:
 
 current_query_val = st.session_state.get("active_query", "")
 
-# Search Settings & Year Range Filter
-with st.expander("Publication Year Range & Retrieval Parameters", expanded=True):
-    col_y1, col_y2 = st.columns([1, 2])
-    with col_y1:
-        preset_choice = st.selectbox(
-            "Publication Year Filter Preset:",
+# =====================================================================
+# 1. Research Question Input Area
+# =====================================================================
+st.markdown(
+    """
+    <div style="font-size:0.90rem; font-weight:700; color:#14243A; margin-bottom:6px;">
+        Research Question or Clinical Inquiry
+    </div>
+    """,
+    unsafe_allow_html=True
+)
+
+user_question = st.text_area(
+    "Biomedical Research Inquiry:",
+    value=current_query_val,
+    height=85,
+    placeholder="e.g. Does zinc supplementation reduce the duration or severity of the common cold?",
+    label_visibility="collapsed",
+    help="Type any biomedical, pharmacological, or clinical research inquiry to search PubMed."
+)
+
+col_search, col_reset, col_spc = st.columns([1.8, 1, 3.2])
+with col_search:
+    search_clicked = st.button("🔍 Synthesise Evidence", type="primary", use_container_width=True)
+with col_reset:
+    clear_clicked = st.button("Clear Input", type="secondary", use_container_width=True)
+
+if clear_clicked:
+    st.session_state["active_query"] = ""
+    st.session_state.pop("latest_result", None)
+    st.session_state.pop("latest_question", None)
+    st.rerun()
+
+# =====================================================================
+# 2. Collapsible Advanced Research Filters
+# =====================================================================
+with st.expander("⚙️ Advanced Research Filters", expanded=False):
+    st.caption("Customise publication year range, paper retrieval volume, article type, and relevance thresholds:")
+
+    col_f1, col_f2, col_f3 = st.columns([2.2, 1.4, 1.4])
+
+    with col_f1:
+        st.markdown("**Publication Year Range**")
+        col_y_start, col_y_end = st.columns(2)
+        with col_y_start:
+            starting_year = st.number_input(
+                "Starting Publication Year",
+                min_value=1800,
+                max_value=2030,
+                value=int(st.session_state.get("start_year_val", 1900)),
+                step=1,
+                key="syn_start_year",
+                help="Type any valid starting 4-digit year (e.g., 1985, 2000, 2015)."
+            )
+        with col_y_end:
+            ending_year = st.number_input(
+                "Ending Publication Year",
+                min_value=1800,
+                max_value=2030,
+                value=int(st.session_state.get("end_year_val", CURRENT_YEAR)),
+                step=1,
+                key="syn_end_year",
+                help="Type any valid ending 4-digit year (e.g., 1995, 2010, 2026)."
+            )
+
+        if st.button("Set to All Years (1900–2026)", key="syn_btn_all_years", type="secondary"):
+            st.session_state["start_year_val"] = 1900
+            st.session_state["end_year_val"] = CURRENT_YEAR
+            st.rerun()
+
+    with col_f2:
+        st.markdown("**Article Limit**")
+        max_papers = st.number_input(
+            "Maximum Research Papers to Retrieve",
+            min_value=1,
+            max_value=100,
+            value=int(st.session_state.get("max_papers_val", 10)),
+            step=5,
+            key="syn_max_papers",
+            help="Configurable limit controlling the number of PubMed records to ingest (e.g., 5, 10, 15, 20, 50, 100)."
+        )
+
+        article_type_choice = st.selectbox(
+            "Article Type Filter",
             options=[
-                "All Years (1900–2026)",
-                "2020–2026 (Recent 6 Years)",
-                "2010–2020 (Last Decade)",
-                "2000–2010 (Millennium Era)",
-                "1900–2000 (Historical)",
-                "Custom Range"
+                "All Article Types",
+                "Clinical Trial",
+                "Randomized Controlled Trial",
+                "Meta-Analysis / Systematic Review",
+                "Review Article"
             ],
-            index=0
-        )
-    with col_y2:
-        calc_range = (1900, CURRENT_YEAR)
-        if preset_choice == "2020–2026 (Recent 6 Years)":
-            calc_range = (2020, CURRENT_YEAR)
-        elif preset_choice == "2010–2020 (Last Decade)":
-            calc_range = (2010, 2020)
-        elif preset_choice == "2000–2010 (Millennium Era)":
-            calc_range = (2000, 2010)
-        elif preset_choice == "1900–2000 (Historical)":
-            calc_range = (1900, 2000)
-
-        min_year_val, max_year_val = st.slider(
-            "Select Publication Year Range:",
-            min_value=1900,
-            max_value=CURRENT_YEAR,
-            value=calc_range,
-            step=1
+            index=0,
+            key="syn_article_type",
+            help="Filter candidate PubMed publications by study design."
         )
 
-    col_s1, col_s2 = st.columns(2)
-    with col_s1:
-        max_papers = st.slider(
-            "Max PubMed Papers to Ingest",
-            min_value=3,
-            max_value=15,
-            value=config.DEFAULT_MAX_PAPERS,
-            help="Number of candidate scientific papers to fetch from PubMed."
-        )
-    with col_s2:
+    with col_f3:
+        st.markdown("**Relevance Guard**")
         threshold = st.slider(
             "Abstention Similarity Threshold",
             min_value=0.20,
             max_value=0.60,
-            value=config.MIN_SIMILARITY_THRESHOLD,
+            value=float(config.MIN_SIMILARITY_THRESHOLD),
             step=0.02,
+            key="syn_threshold",
             help="If the top evidence chunk scores below this cosine similarity threshold, EvidenceBot abstains."
         )
 
-# Question Input Area
-user_question = st.text_area(
-    "Biomedical Research Inquiry:",
-    value=current_query_val,
-    height=95,
-    placeholder="e.g. Does zinc supplementation reduce the duration or severity of the common cold?"
-)
+# Validate Year Range Input
+year_validation_error = False
+if starting_year > ending_year:
+    st.error(f"⚠️ Validation Error: Starting Publication Year ({starting_year}) cannot be greater than Ending Publication Year ({ending_year}). Please correct the range.")
+    year_validation_error = True
 
-col_search, col_reset = st.columns([1, 4])
-with col_search:
-    search_clicked = st.button("Execute Synthesis →", type="primary", use_container_width=True)
-with col_reset:
-    if st.button("Clear Input"):
-        st.session_state["active_query"] = ""
-        st.session_state.pop("latest_result", None)
-        st.rerun()
+is_all_years = (starting_year <= 1900 and ending_year >= CURRENT_YEAR)
+active_year_label = "All Years (1900–2026)" if is_all_years else f"{starting_year}–{ending_year}"
 
+# =====================================================================
+# 3. Pipeline Execution & Loading Telemetry
+# =====================================================================
 auto_trigger = prefill_query is not None and len(prefill_query.strip()) > 0
+should_run = search_clicked or auto_trigger
 
-# =====================================================================
-# Execution & Loading Telemetry
-# =====================================================================
-if search_clicked or auto_trigger:
+if should_run:
     clean_q = user_question.strip()
     if not clean_q:
-        st.warning("Please enter a biomedical question first.")
+        st.warning("Please enter a research inquiry or scientific question first.")
+    elif year_validation_error:
+        st.warning("Please fix the publication year range error before searching.")
     else:
         st.session_state["active_query"] = clean_q
-        yr_label = f"{min_year_val}–{max_year_val}" if (min_year_val > 1900 or max_year_val < CURRENT_YEAR) else "All Years"
-        add_to_history(clean_q, year_range=yr_label)
-        
-        status_box = st.status("Executing Biomedical RAG Pipeline...", expanded=True)
-        
+        st.session_state["start_year_val"] = starting_year
+        st.session_state["end_year_val"] = ending_year
+        st.session_state["max_papers_val"] = max_papers
+
+        add_to_history(clean_q, year_range=active_year_label)
+
+        status_box = st.status("Retrieving Peer-Reviewed Research from PubMed...", expanded=True)
+
         try:
-            status_box.write(f"**Phase 1/4:** Formulating search and querying PubMed with publication filter ({yr_label})...")
-            status_box.write("**Phase 2/4:** Parsing candidate peer-reviewed abstracts (`efetch`)...")
-            status_box.write("**Phase 3/4:** Encoding dense vectors via SentenceTransformers & indexing in FAISS...")
-            status_box.write("**Phase 4/4:** Evaluating confidence threshold & synthesizing grounded claims...")
-            
-            q_min = min_year_val if min_year_val > 1900 else None
-            q_max = max_year_val if max_year_val < CURRENT_YEAR else None
+            status_box.write(f"&bull; Applying publication year filter (`{active_year_label}`) and article limit (`{max_papers} papers`)...")
+            status_box.write("&bull; Querying NCBI Entrez E-Utilities and Europe PMC database mirror...")
+            status_box.write("&bull; Parsing candidate abstracts and generating 768-dim FAISS dense vector index...")
+            status_box.write("&bull; Evaluating evidence sufficiency and formulating verified answer with authentic citations...")
+
+            q_min = starting_year if not is_all_years else None
+            q_max = ending_year if not is_all_years else None
+            q_type = article_type_choice if article_type_choice != "All Article Types" else None
 
             result = run_rag_pipeline(
                 clean_q,
-                max_papers=max_papers,
-                threshold=threshold,
+                max_papers=int(max_papers),
+                threshold=float(threshold),
                 min_year=q_min,
-                max_year=q_max
+                max_year=q_max,
+                article_type=q_type
             )
             st.session_state["latest_result"] = result
             st.session_state["latest_question"] = clean_q
-            st.session_state["latest_year_range"] = yr_label
-            
-            status_box.update(label="Evidence Pipeline Complete", state="complete", expanded=False)
+            st.session_state["latest_year_range"] = active_year_label
+
+            status_box.update(label="Evidence Synthesis Complete", state="complete", expanded=False)
         except Exception as err:
             status_box.update(label="Pipeline Execution Error", state="error")
             st.error(f"Encountered pipeline error: {err}")
 
 # =====================================================================
-# Results Display Section
+# 4. Results Dashboard
 # =====================================================================
 if "latest_result" in st.session_state:
     result = st.session_state["latest_result"]
     question_display = st.session_state.get("latest_question", "")
-    yr_display = st.session_state.get("latest_year_range", "All Years")
+    active_year_range = st.session_state.get("latest_year_range", active_year_label)
+    is_abstention = result.get("is_abstention", False)
     retrieved_papers = result.get("papers", [])
+    verified_pmids = set(result.get("verified_pmids", []))
+    confidence_val = result.get("confidence", "Moderate")
+    top_score = result.get("max_score", 0.0)
 
     st.markdown("---")
-    st.markdown(f"**Target Inquiry:** *\"{question_display}\"*")
+    st.markdown(f"### Research Findings for: *\"{question_display}\"*")
 
-    # A. Abstention Condition
-    if result.get("is_abstention"):
-        top_score = result.get("max_score", 0.0)
-        render_evidence_availability(is_available=False, year_range=yr_display)
+    # SECTION B: Evidence Overview
+    st.markdown("#### Evidence Overview")
+    render_evidence_availability(
+        is_available=(not is_abstention and len(retrieved_papers) > 0),
+        count=len(retrieved_papers),
+        year_range=active_year_range
+    )
 
-        ab_rep = result.get("abstention_report") or {}
-        search_query = ab_rep.get("search_query") or question_display
-        papers_count = ab_rep.get("papers_retrieved_count", len(retrieved_papers))
-        insufficient_reason = ab_rep.get("reason") or result.get("reason", "Retrieved evidence does not meet confidence standards.")
-        additional_research = ab_rep.get("additional_research_required") or "Targeted randomized clinical trials or systematic reviews directly addressing this specific hypothesis."
-
+    if is_abstention:
         st.markdown(
             f"""
-            <div style="background-color: #fff1f2; border: 1px solid #fecdd3; border-left: 4px solid #e11d48; border-radius: 12px; padding: 22px 26px; margin: 16px 0;">
-                <div style="font-size: 1.10rem; font-weight: 700; color: #be123c; margin-bottom: 8px;">
+            <div style="background-color: #FEF2F2; border: 1px solid #FECACA; border-left: 4px solid #DC2626; border-radius: 10px; padding: 20px 24px; margin: 16px 0;">
+                <div style="font-size: 1.08rem; font-weight: 700; color: #991B1B; margin-bottom: 6px;">
                     No sufficient scientific evidence found for this query.
                 </div>
-                <p style="color: #334155; font-size: 0.92rem; line-height: 1.6; margin-bottom: 12px;">
-                    EvidenceBot strictly enforces an empirical abstention protocol. In scientific and biomedical inquiry, 
-                    refusing to synthesize speculative claims prevents dangerous hallucinations and medical misinformation.
+                <p style="color: #4B5563; font-size: 0.90rem; line-height: 1.6; margin: 0 0 10px 0;">
+                    EvidenceBot strictly enforces an empirical abstention protocol. In scientific and biomedical research, 
+                    refusing to synthesize unsupported claims prevents dangerous hallucinations and clinical misinformation.
                 </p>
-                <div style="background-color: #ffffff; border: 1px solid #fecdd3; border-radius: 6px; padding: 12px 16px;">
-                    <ul style="margin: 0; padding-left: 18px; line-height: 1.8; color: #1e293b; font-size: 0.88rem; font-family:'JetBrains Mono', monospace;">
-                        <li><strong>Query Ingestion:</strong> {search_query}</li>
-                        <li><strong>Candidate Records:</strong> {papers_count} publication(s) from NCBI PubMed</li>
-                        <li><strong>Publication Year Filter:</strong> {yr_display}</li>
-                        <li><strong>Abstention Trigger:</strong> {insufficient_reason}</li>
-                        <li><strong>Future Direction:</strong> {additional_research}</li>
-                    </ul>
+                <div style="background-color: #FFFFFF; border: 1px solid #FECACA; border-radius: 6px; padding: 10px 14px; font-size: 0.84rem; font-family:'JetBrains Mono', monospace; color:#1F2937;">
+                    <div><strong>Inquiry:</strong> {question_display}</div>
+                    <div><strong>Publication Filter:</strong> {active_year_range}</div>
+                    <div><strong>Abstention Trigger:</strong> {result.get('reason', 'Retrieved literature does not meet confidence standards.')}</div>
                 </div>
             </div>
             """,
             unsafe_allow_html=True
         )
 
-        col_ab1, col_ab2 = st.columns(2)
-        with col_ab1:
-            st.page_link("pages/2_Research_Papers.py", label="Inspect Candidate Papers on Literature Explorer →")
-        with col_ab2:
-            st.page_link("pages/3_Evidence_Analysis.py", label="Inspect Abstention Diagnostics on Grounding Audit →")
+        if retrieved_papers:
+            st.markdown(f"#### Retrieved Candidate Papers ({len(retrieved_papers)} Records Evaluated)")
+            st.caption("These candidate publications were retrieved but fell below cosine confidence thresholds:")
+            for p in retrieved_papers:
+                render_paper_card(p, is_cited=False)
 
-    # B. Successful Evidence Synthesis
     else:
-        conf = result.get("confidence", "Moderate")
-        top_score = result.get("max_score", 0.0)
-        provider = result.get("provider", "Synthesizer")
-        
-        render_evidence_availability(is_available=True, count=len(retrieved_papers), year_range=yr_display)
-
-        # Evidence Status Badges
+        # SECTION A: AI Research Synthesis
         st.markdown(
             f"""
-            <div style="margin-bottom:12px; display:flex; align-items:center; flex-wrap:wrap; gap:8px;">
-                {render_confidence_badge(conf, top_score)}
-                <span class="mono-tag" style="color:#0f766e; background:#f0fdfa; border:1px solid #99f6e4;">MODEL: {provider}</span>
+            <div style="margin-bottom:10px; display:flex; align-items:center; flex-wrap:wrap; gap:6px;">
+                {render_confidence_badge(confidence_val, top_score)}
+                <span class="mono-tag" style="background:#EBF8F7; color:#168C83; border:1px solid #99E3DD;">
+                    ENGINE: {result.get('provider', 'Synthesizer')}
+                </span>
                 <span class="mono-tag">CHUNKS: {len(result.get('chunks', []))}</span>
-                <span class="mono-tag">YEARS: {yr_display}</span>
+                <span class="mono-tag">YEARS: {active_year_range}</span>
             </div>
             """,
             unsafe_allow_html=True
         )
 
-        # Formatted Answer Display
+        st.markdown("#### AI Research Synthesis")
+        answer_text = result.get("answer", "")
         st.markdown(
             f"""
             <div class="answer-card">
-                {st.session_state['latest_result'].get('answer', '')}
+                {answer_text}
             </div>
             """,
             unsafe_allow_html=True
         )
 
-        # Citation Section
+        # SECTION D: References & Citations
         citation_rep = result.get("citation_report") or {}
         verified_items = citation_rep.get("verified_citations", [])
-        hallucinated_pmids = citation_rep.get("hallucinated_pmids", [])
-        missing_citations = citation_rep.get("missing_citations", [])
-        unsupported_claims = citation_rep.get("unsupported_claims", [])
-
-        if hallucinated_pmids:
-            st.error(
-                f"UNVERIFIED CITATIONS DETECTED: The draft referenced unverified PMID(s): "
-                f"`{', '.join(hallucinated_pmids)}`. These did not exist in the retrieved literature."
-            )
-
-        if missing_citations or unsupported_claims:
-            col_w1, col_w2 = st.columns(2)
-            with col_w1:
-                if missing_citations:
-                    st.warning(f"{len(missing_citations)} assertion(s) lacked a direct PMID citation.")
-            with col_w2:
-                if unsupported_claims:
-                    st.warning(f"{len(unsupported_claims)} assertion(s) cited weakly relevant sources (relevance < {config.MIN_SIMILARITY_THRESHOLD:.2f}).")
-
         if verified_items:
-            st.markdown(f"Verified **{len(verified_items)}** peer-reviewed citation(s) linked to authenticated NCBI records:")
-            
-            for item in verified_items:
+            st.markdown(f"#### References ({len(verified_items)} Authenticated Citations)")
+            for idx, item in enumerate(verified_items, 1):
                 authors_str = ", ".join(item.get("authors", [])[:3])
                 if len(item.get("authors", [])) > 3:
                     authors_str += " et al."
-                
-                doi_str = f" | DOI: {item.get('doi')}" if item.get("doi") else ""
-                rel_score = item.get("relevance_score", 0.0)
-                rel_badge = f'<span class="badge-pill badge-high">RELEVANCE: {rel_score:.2f}</span>' if rel_score >= 0.40 else f'<span class="badge-pill badge-moderate">RELEVANCE: {rel_score:.2f}</span>'
-
                 st.markdown(
                     f"""
-                    <div class="paper-card" style="padding:16px 20px; margin-bottom:12px;">
-                        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px;">
-                            <div>
-                                <a href="{item.get('url')}" target="_blank" style="font-weight:700; color:#0f172a; text-decoration:none; font-size:1.02rem;">
-                                    {item.get('title')} &rarr;
-                                </a>
-                                <div style="font-size:0.84rem; color:#64748b; margin-top:2px;">
-                                    {authors_str} &bull; <em>{item.get('journal', 'Journal')}</em> ({item.get('year', 'N/A')}){doi_str}
-                                </div>
-                            </div>
-                            <div>
-                                {rel_badge}
-                                <span class="mono-tag">PMID {item.get('pmid')}</span>
-                            </div>
+                    <div style="background:#FFFFFF; border:1px solid #E5E7EB; border-left:3px solid #168C83; border-radius:6px; padding:10px 14px; margin-bottom:8px;">
+                        <div style="font-weight:700; font-size:0.95rem; color:#14243A;">
+                            [{idx}] <a href="{item.get('url')}" target="_blank" style="color:#14243A; text-decoration:none;">{item.get('title')}</a>
                         </div>
-                        <div style="background-color:#f8fafc; border-left:3px solid #0d9488; padding:8px 12px; margin-top:10px; border-radius:4px; font-size:0.88rem; color:#334155;">
-                            <strong>Asserted Claim:</strong> "{item.get('claim_context')}"
+                        <div style="font-size:0.82rem; color:#4B5563; margin-top:2px;">
+                            {authors_str} &bull; <em>{item.get('journal', 'Journal')}</em> ({item.get('year', 'N/A')}) &bull; PMID: <code>{item.get('pmid')}</code>
+                        </div>
+                        <div style="font-size:0.84rem; color:#374151; margin-top:4px; background:#F8FAFC; padding:4px 8px; border-radius:4px;">
+                            <strong>Cited Context:</strong> "{item.get('claim_context')}"
                         </div>
                     </div>
                     """,
                     unsafe_allow_html=True
                 )
 
-            col_l1, col_l2 = st.columns(2)
-            with col_l1:
-                st.page_link("pages/2_Research_Papers.py", label="View Complete Abstract Records on Literature Explorer →")
-            with col_l2:
-                st.page_link("pages/3_Evidence_Analysis.py", label="View Claim-by-Claim Verification on Grounding Audit →")
+        # SECTION C: Retrieved Research Papers
+        st.markdown("---")
+        st.markdown(f"#### Retrieved Research Papers ({len(retrieved_papers)} Publications)")
+        st.caption(f"Peer-reviewed scientific publications retrieved from PubMed matching **{active_year_range}**:")
 
-# Scientific Disclaimer
+        for paper in retrieved_papers:
+            is_cited = paper.pmid in verified_pmids
+            render_paper_card(paper, is_cited=is_cited)
+
+# Institutional Disclaimer Footer
 render_disclaimer()
