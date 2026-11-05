@@ -24,12 +24,12 @@ st.markdown(
     """
     <div style="margin-bottom: 22px;">
         <div style="margin-bottom:6px;">
-            <span class="mono-tag" style="color:#38bdf8; background:rgba(14,165,233,0.1); border:1px solid rgba(14,165,233,0.25);">
+            <span class="mono-tag" style="color:#0f766e; background:#f0fdfa; border:1px solid #99f6e4;">
                 SYSTEM ARCHITECTURE & GOVERNANCE
             </span>
         </div>
-        <h2 style="color: #ffffff; margin-bottom: 4px; font-weight:800; letter-spacing:-0.03em;">Architecture & Methodology</h2>
-        <p style="color: #94a3b8; margin: 0; font-size:0.98rem;">Enterprise Retrieval-Augmented Generation (RAG) framework, PubMed data provenance, and deterministic verification protocols.</p>
+        <h2 style="color: #0f172a; margin-bottom: 4px; font-weight:800; letter-spacing:-0.03em;">Architecture & Methodology</h2>
+        <p style="color: #475569; margin: 0; font-size:0.98rem;">Enterprise Retrieval-Augmented Generation (RAG) framework, PubMed data provenance, and deterministic verification protocols.</p>
     </div>
     """,
     unsafe_allow_html=True

@@ -1,9 +1,9 @@
 """
 EvidenceBot - Page 1: Evidence Synthesis Engine
 ================================================
-Autonomous literature synthesis pipeline: queries PubMed, indexes with FAISS dense vectors,
-evaluates sufficiency against cosine thresholds, synthesizes answers, and verifies citations.
-Zero informal emojis, sleek deeptech telemetry layout.
+Autonomous literature synthesis pipeline: queries PubMed & Europe PMC,
+indexes with FAISS dense vectors, evaluates sufficiency against cosine thresholds,
+synthesizes answers, and verifies citations.
 """
 
 import streamlit as st
@@ -12,8 +12,11 @@ from utils.ui_components import (
     apply_theme,
     render_sidebar,
     render_confidence_badge,
+    render_evidence_availability,
     render_disclaimer,
+    render_paper_card,
 )
+from utils.history_manager import add_to_history
 from backend.rag_pipeline import run_rag_pipeline
 
 # Configure page
@@ -27,31 +30,66 @@ st.set_page_config(
 apply_theme()
 render_sidebar(current_page="Evidence Synthesis")
 
+CURRENT_YEAR = 2026
+
 # Page Header
 st.markdown(
     """
     <div style="margin-bottom: 22px;">
         <div style="margin-bottom:6px;">
-            <span class="mono-tag" style="color:#38bdf8; background:rgba(14,165,233,0.1); border:1px solid rgba(14,165,233,0.25);">
+            <span class="mono-tag" style="color:#0f766e; background:#f0fdfa; border:1px solid #99f6e4;">
                 SYNTHESIS ENGINE &bull; RAG PIPELINE
             </span>
         </div>
-        <h2 style="color: #ffffff; margin-bottom: 4px; font-weight:800; letter-spacing:-0.03em;">Evidence Synthesis Console</h2>
-        <p style="color: #94a3b8; margin: 0; font-size:0.98rem;">Submit a biomedical, pharmacological, or clinical inquiry to synthesize peer-reviewed literature with deterministic citation tracing.</p>
+        <h2 style="color: #0f172a; margin-bottom: 4px; font-weight:800; letter-spacing:-0.03em;">Evidence Synthesis Console</h2>
+        <p style="color: #475569; margin: 0; font-size:0.98rem;">Submit a biomedical, pharmacological, or clinical inquiry to synthesize peer-reviewed literature with deterministic citation tracing.</p>
     </div>
     """,
     unsafe_allow_html=True
 )
 
-# Retrieve any query passed from the home dashboard
+# Retrieve any query passed from the home dashboard or sidebar
 prefill_query = st.session_state.pop("query_to_run", None)
 if prefill_query:
     st.session_state["active_query"] = prefill_query
 
 current_query_val = st.session_state.get("active_query", "")
 
-# Search Settings Collapsible
-with st.expander("Advanced Retrieval & Abstention Parameters", expanded=False):
+# Search Settings & Year Range Filter
+with st.expander("Publication Year Range & Retrieval Parameters", expanded=True):
+    col_y1, col_y2 = st.columns([1, 2])
+    with col_y1:
+        preset_choice = st.selectbox(
+            "Publication Year Filter Preset:",
+            options=[
+                "All Years (1900–2026)",
+                "2020–2026 (Recent 6 Years)",
+                "2010–2020 (Last Decade)",
+                "2000–2010 (Millennium Era)",
+                "1900–2000 (Historical)",
+                "Custom Range"
+            ],
+            index=0
+        )
+    with col_y2:
+        calc_range = (1900, CURRENT_YEAR)
+        if preset_choice == "2020–2026 (Recent 6 Years)":
+            calc_range = (2020, CURRENT_YEAR)
+        elif preset_choice == "2010–2020 (Last Decade)":
+            calc_range = (2010, 2020)
+        elif preset_choice == "2000–2010 (Millennium Era)":
+            calc_range = (2000, 2010)
+        elif preset_choice == "1900–2000 (Historical)":
+            calc_range = (1900, 2000)
+
+        min_year_val, max_year_val = st.slider(
+            "Select Publication Year Range:",
+            min_value=1900,
+            max_value=CURRENT_YEAR,
+            value=calc_range,
+            step=1
+        )
+
     col_s1, col_s2 = st.columns(2)
     with col_s1:
         max_papers = st.slider(
@@ -99,18 +137,30 @@ if search_clicked or auto_trigger:
         st.warning("Please enter a biomedical question first.")
     else:
         st.session_state["active_query"] = clean_q
+        yr_label = f"{min_year_val}–{max_year_val}" if (min_year_val > 1900 or max_year_val < CURRENT_YEAR) else "All Years"
+        add_to_history(clean_q, year_range=yr_label)
         
         status_box = st.status("Executing Biomedical RAG Pipeline...", expanded=True)
         
         try:
-            status_box.write("**Phase 1/4:** Formulating search and querying NCBI Entrez (`esearch`)...")
+            status_box.write(f"**Phase 1/4:** Formulating search and querying PubMed with publication filter ({yr_label})...")
             status_box.write("**Phase 2/4:** Parsing candidate peer-reviewed abstracts (`efetch`)...")
             status_box.write("**Phase 3/4:** Encoding dense vectors via SentenceTransformers & indexing in FAISS...")
             status_box.write("**Phase 4/4:** Evaluating confidence threshold & synthesizing grounded claims...")
             
-            result = run_rag_pipeline(clean_q, max_papers=max_papers, threshold=threshold)
+            q_min = min_year_val if min_year_val > 1900 else None
+            q_max = max_year_val if max_year_val < CURRENT_YEAR else None
+
+            result = run_rag_pipeline(
+                clean_q,
+                max_papers=max_papers,
+                threshold=threshold,
+                min_year=q_min,
+                max_year=q_max
+            )
             st.session_state["latest_result"] = result
             st.session_state["latest_question"] = clean_q
+            st.session_state["latest_year_range"] = yr_label
             
             status_box.update(label="Evidence Pipeline Complete", state="complete", expanded=False)
         except Exception as err:
@@ -123,6 +173,8 @@ if search_clicked or auto_trigger:
 if "latest_result" in st.session_state:
     result = st.session_state["latest_result"]
     question_display = st.session_state.get("latest_question", "")
+    yr_display = st.session_state.get("latest_year_range", "All Years")
+    retrieved_papers = result.get("papers", [])
 
     st.markdown("---")
     st.markdown(f"**Target Inquiry:** *\"{question_display}\"*")
@@ -130,29 +182,29 @@ if "latest_result" in st.session_state:
     # A. Abstention Condition
     if result.get("is_abstention"):
         top_score = result.get("max_score", 0.0)
-        badge_html = render_confidence_badge("Insufficient", top_score)
-        st.markdown(badge_html, unsafe_allow_html=True)
+        render_evidence_availability(is_available=False, year_range=yr_display)
 
         ab_rep = result.get("abstention_report") or {}
         search_query = ab_rep.get("search_query") or question_display
-        papers_count = ab_rep.get("papers_retrieved_count", len(result.get("papers", [])))
+        papers_count = ab_rep.get("papers_retrieved_count", len(retrieved_papers))
         insufficient_reason = ab_rep.get("reason") or result.get("reason", "Retrieved evidence does not meet confidence standards.")
         additional_research = ab_rep.get("additional_research_required") or "Targeted randomized clinical trials or systematic reviews directly addressing this specific hypothesis."
 
         st.markdown(
             f"""
-            <div class="abstention-box">
-                <div style="font-size: 1.05rem; font-weight: 700; color: #fb7185; margin-bottom: 10px;">
-                    EMPIRICAL ABSTENTION ACTIVATED: Insufficient reliable evidence in retrieved literature.
+            <div style="background-color: #fff1f2; border: 1px solid #fecdd3; border-left: 4px solid #e11d48; border-radius: 12px; padding: 22px 26px; margin: 16px 0;">
+                <div style="font-size: 1.10rem; font-weight: 700; color: #be123c; margin-bottom: 8px;">
+                    No sufficient scientific evidence found for this query.
                 </div>
-                <p style="color: #cbd5e1; font-size: 0.90rem; margin-bottom: 12px; line-height:1.6;">
+                <p style="color: #334155; font-size: 0.92rem; line-height: 1.6; margin-bottom: 12px;">
                     EvidenceBot strictly enforces an empirical abstention protocol. In scientific and biomedical inquiry, 
                     refusing to synthesize speculative claims prevents dangerous hallucinations and medical misinformation.
                 </p>
-                <div style="background-color: #090e17; border: 1px solid rgba(244, 63, 94, 0.25); border-radius: 6px; padding: 12px 16px;">
-                    <ul style="margin: 0; padding-left: 18px; line-height: 1.8; color: #e2e8f0; font-size: 0.88rem; font-family:'JetBrains Mono', monospace;">
+                <div style="background-color: #ffffff; border: 1px solid #fecdd3; border-radius: 6px; padding: 12px 16px;">
+                    <ul style="margin: 0; padding-left: 18px; line-height: 1.8; color: #1e293b; font-size: 0.88rem; font-family:'JetBrains Mono', monospace;">
                         <li><strong>Query Ingestion:</strong> {search_query}</li>
                         <li><strong>Candidate Records:</strong> {papers_count} publication(s) from NCBI PubMed</li>
+                        <li><strong>Publication Year Filter:</strong> {yr_display}</li>
                         <li><strong>Abstention Trigger:</strong> {insufficient_reason}</li>
                         <li><strong>Future Direction:</strong> {additional_research}</li>
                     </ul>
@@ -174,13 +226,16 @@ if "latest_result" in st.session_state:
         top_score = result.get("max_score", 0.0)
         provider = result.get("provider", "Synthesizer")
         
+        render_evidence_availability(is_available=True, count=len(retrieved_papers), year_range=yr_display)
+
         # Evidence Status Badges
         st.markdown(
             f"""
-            <div style="margin-bottom:12px;">
+            <div style="margin-bottom:12px; display:flex; align-items:center; flex-wrap:wrap; gap:8px;">
                 {render_confidence_badge(conf, top_score)}
-                <span class="mono-tag" style="color:#38bdf8; background:rgba(14,165,233,0.1); border:1px solid rgba(14,165,233,0.25);">MODEL: {provider}</span>
-                <span class="mono-tag" style="color:#94a3b8; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);">CHUNKS: {len(result.get('chunks', []))}</span>
+                <span class="mono-tag" style="color:#0f766e; background:#f0fdfa; border:1px solid #99f6e4;">MODEL: {provider}</span>
+                <span class="mono-tag">CHUNKS: {len(result.get('chunks', []))}</span>
+                <span class="mono-tag">YEARS: {yr_display}</span>
             </div>
             """,
             unsafe_allow_html=True
@@ -189,7 +244,7 @@ if "latest_result" in st.session_state:
         # Formatted Answer Display
         st.markdown(
             f"""
-            <div class="answer-box">
+            <div class="answer-card">
                 {st.session_state['latest_result'].get('answer', '')}
             </div>
             """,
@@ -197,15 +252,6 @@ if "latest_result" in st.session_state:
         )
 
         # Citation Section
-        st.markdown(
-            """
-            <div style="margin-top:24px; margin-bottom:8px;">
-                <span class="mono-tag" style="color:#94a3b8; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1);">CITATION ATTRIBUTION AUDIT</span>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-        
         citation_rep = result.get("citation_report") or {}
         verified_items = citation_rep.get("verified_citations", [])
         hallucinated_pmids = citation_rep.get("hallucinated_pmids", [])
@@ -241,22 +287,22 @@ if "latest_result" in st.session_state:
 
                 st.markdown(
                     f"""
-                    <div class="bio-card" style="padding:14px 18px; margin-bottom:10px;">
+                    <div class="paper-card" style="padding:16px 20px; margin-bottom:12px;">
                         <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px;">
                             <div>
-                                <a href="{item.get('url')}" target="_blank" style="font-weight:700; color:#38bdf8; text-decoration:none; font-size:0.98rem; letter-spacing:-0.015em;">
+                                <a href="{item.get('url')}" target="_blank" style="font-weight:700; color:#0f172a; text-decoration:none; font-size:1.02rem;">
                                     {item.get('title')} &rarr;
                                 </a>
-                                <div style="font-size:0.82rem; color:#94a3b8; margin-top:2px;">
+                                <div style="font-size:0.84rem; color:#64748b; margin-top:2px;">
                                     {authors_str} &bull; <em>{item.get('journal', 'Journal')}</em> ({item.get('year', 'N/A')}){doi_str}
                                 </div>
                             </div>
                             <div>
                                 {rel_badge}
-                                <span class="mono-tag" style="background:#111827; color:#38bdf8; border:1px solid rgba(14,165,233,0.3);">PMID {item.get('pmid')}</span>
+                                <span class="mono-tag">PMID {item.get('pmid')}</span>
                             </div>
                         </div>
-                        <div style="background-color:rgba(255,255,255,0.03); border-left:2px solid #0ea5e9; padding:8px 12px; margin-top:10px; border-radius:4px; font-size:0.86rem; color:#cbd5e1;">
+                        <div style="background-color:#f8fafc; border-left:3px solid #0d9488; padding:8px 12px; margin-top:10px; border-radius:4px; font-size:0.88rem; color:#334155;">
                             <strong>Asserted Claim:</strong> "{item.get('claim_context')}"
                         </div>
                     </div>
@@ -269,15 +315,6 @@ if "latest_result" in st.session_state:
                 st.page_link("pages/2_Research_Papers.py", label="View Complete Abstract Records on Literature Explorer →")
             with col_l2:
                 st.page_link("pages/3_Evidence_Analysis.py", label="View Claim-by-Claim Verification on Grounding Audit →")
-        else:
-            verified_pmids = result.get("verified_pmids", [])
-            if verified_pmids:
-                st.write(
-                    f"EvidenceBot verified **{len(verified_pmids)}** peer-reviewed publication(s) cited in this answer: "
-                    + ", ".join([f"[`PMID: {p}`](https://pubmed.ncbi.nlm.nih.gov/{p}/)" for p in verified_pmids])
-                )
-            else:
-                st.caption("No individual citations were extracted for this query.")
 
 # Scientific Disclaimer
 render_disclaimer()

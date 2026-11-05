@@ -56,6 +56,21 @@ def build_pubmed_query(query: str) -> str:
     return " ".join(tokens)
 
 
+def matches_year_range(paper_year: str, min_year: Optional[int] = None, max_year: Optional[int] = None) -> bool:
+    """Checks whether a paper's publication year falls within [min_year, max_year]."""
+    if min_year is None and max_year is None:
+        return True
+    m = re.search(r"\b(19\d\d|20\d\d)\b", str(paper_year))
+    if m:
+        y = int(m.group(1))
+        if min_year is not None and y < min_year:
+            return False
+        if max_year is not None and y > max_year:
+            return False
+        return True
+    return True
+
+
 @dataclass
 class PaperMetadata:
     """
@@ -142,14 +157,118 @@ class PubMedRetriever:
             params["api_key"] = self.api_key
         return params
 
-    def _execute_esearch(self, term: str, max_results: int) -> List[str]:
-        """Helper to run a single ESearch request with retry logic."""
+    def _search_europepmc(
+        self,
+        term: str,
+        max_results: int,
+        min_year: Optional[int] = None,
+        max_year: Optional[int] = None
+    ) -> List[str]:
+        """
+        Resilient PubMed search fallback querying Europe PMC (mirror of PubMed / MEDLINE).
+        Used if NCBI Entrez ESearch experiences server outages (e.g. HTTP 500).
+        """
+        try:
+            q = term
+            if min_year is not None or max_year is not None:
+                y_min = min_year if min_year is not None else 1900
+                y_max = max_year if max_year is not None else 2026
+                q = f"({term}) AND PUB_YEAR:[{y_min} TO {y_max}]"
+            
+            url = "https://www.ebi.ac.uk/europepmc/webservices/rest/search"
+            params = {
+                "query": q,
+                "format": "json",
+                "pageSize": str(min(max_results, config.MAX_CANDIDATE_PAPERS))
+            }
+            resp = requests.get(url, params=params, timeout=12)
+            if resp.status_code == 200:
+                data = resp.json()
+                results = data.get("resultList", {}).get("result", [])
+                pmids = [r["pmid"] for r in results if r.get("pmid")]
+                return list(dict.fromkeys(pmids))
+        except Exception as err:
+            logger.warning(f"Europe PMC search fallback error: {err}")
+        return []
+
+    def _fetch_details_europepmc(self, pmids: List[str]) -> List[PaperMetadata]:
+        """
+        Fetches structured metadata and abstracts for PMIDs via Europe PMC.
+        Provides a seamless fallback if NCBI EFetch is unreachable.
+        """
+        if not pmids:
+            return []
+        papers: List[PaperMetadata] = []
+        try:
+            query_str = " OR ".join([f"ext_id:{p}" for p in pmids[:15]])
+            query_str = f"({query_str}) src:med"
+            url = "https://www.ebi.ac.uk/europepmc/webservices/rest/search"
+            params = {
+                "query": query_str,
+                "format": "json",
+                "resultType": "core",
+                "pageSize": "25"
+            }
+            resp = requests.get(url, params=params, timeout=15)
+            if resp.status_code == 200:
+                data = resp.json()
+                for item in data.get("resultList", {}).get("result", []):
+                    pmid = str(item.get("pmid", ""))
+                    if not pmid:
+                        continue
+                    title = item.get("title", "Untitled Publication").strip()
+                    if title.endswith("."):
+                        title = title[:-1].strip()
+                    abstract = item.get("abstractText") or NO_ABSTRACT_TEXT
+                    has_abstract = bool(item.get("abstractText"))
+                    journal = item.get("journalTitle") or "Biomedical Journal"
+                    year = str(item.get("pubYear", "Unknown"))
+                    authors = []
+                    author_str = item.get("authorString", "")
+                    if author_str:
+                        authors = [a.strip() for a in author_str.split(",")[:6] if a.strip()]
+                    doi = item.get("doi")
+                    papers.append(PaperMetadata(
+                        pmid=pmid,
+                        title=title,
+                        abstract=abstract,
+                        has_abstract=has_abstract,
+                        journal=journal,
+                        year=year,
+                        authors=authors,
+                        doi=doi
+                    ))
+        except Exception as err:
+            logger.warning(f"Europe PMC metadata fetch fallback error: {err}")
+        return papers
+
+    def _execute_esearch(
+        self,
+        term: str,
+        max_results: int,
+        min_year: Optional[int] = None,
+        max_year: Optional[int] = None
+    ) -> List[str]:
+        """Helper to run a single ESearch request with retry logic and date filter."""
         self._apply_rate_limit()
 
         params = self._get_base_params()
+        search_term = term
+        
+        # Apply publication year filter to NCBI ESearch query and parameters
+        if min_year is not None or max_year is not None:
+            y_min = min_year if min_year is not None else 1900
+            y_max = max_year if max_year is not None else 2026
+            search_term = f'({term}) AND ("{y_min}"[Date - Publication] : "{y_max}"[Date - Publication])'
+            params["datetype"] = "pdat"
+            if min_year is not None:
+                params["mindate"] = str(min_year)
+            if max_year is not None:
+                params["maxdate"] = str(max_year)
+
         params.update({
             "db": "pubmed",
-            "term": term,
+            "term": search_term,
             "retmode": "json",
             "retmax": str(min(max_results, config.MAX_CANDIDATE_PAPERS)),
             "sort": "relevance",
@@ -171,6 +290,11 @@ class PubMedRetriever:
                     time.sleep(wait_time)
                     continue
 
+                # If NCBI server error (e.g. 500), fall back to Europe PMC PubMed mirror
+                if response.status_code >= 500:
+                    logger.warning("NCBI ESearch server error (HTTP 500). Using Europe PMC PubMed mirror.")
+                    return self._search_europepmc(term, max_results, min_year, max_year)
+
                 response.raise_for_status()
                 data = response.json()
                 raw_pmids = data.get("esearchresult", {}).get("idlist", [])
@@ -179,22 +303,30 @@ class PubMedRetriever:
             except requests.Timeout:
                 logger.warning(f"NCBI ESearch timeout on attempt {attempt + 1}/{max_retries}.")
                 if attempt == max_retries - 1:
-                    return []
+                    return self._search_europepmc(term, max_results, min_year, max_year)
                 time.sleep(1.0)
-            except requests.RequestException as req_err:
+            except Exception as req_err:
                 logger.error(f"Error executing PubMed ESearch for '{term}': {req_err}")
-                return []
+                return self._search_europepmc(term, max_results, min_year, max_year)
 
-        return []
+        return self._search_europepmc(term, max_results, min_year, max_year)
 
-    def search(self, query: str, max_results: int = config.DEFAULT_MAX_PAPERS) -> List[str]:
+    def search(
+        self,
+        query: str,
+        max_results: int = config.DEFAULT_MAX_PAPERS,
+        min_year: Optional[int] = None,
+        max_year: Optional[int] = None
+    ) -> List[str]:
         """
-        Executes an ESearch query on PubMed to obtain relevant PMIDs.
+        Executes an ESearch query on PubMed to obtain relevant PMIDs within year range.
         Uses query optimization for natural language questions.
         
         Parameters:
             query (str): Clinical question or search term.
             max_results (int): Maximum number of PMIDs to return.
+            min_year (Optional[int]): Earliest publication year.
+            max_year (Optional[int]): Latest publication year.
             
         Returns:
             List[str]: Deduplicated list of matching PubMed IDs.
@@ -205,20 +337,28 @@ class PubMedRetriever:
 
         # 1. First attempt with cleaned keywords
         optimized_query = build_pubmed_query(clean_query)
-        pmids = self._execute_esearch(optimized_query, max_results)
+        pmids = self._execute_esearch(optimized_query, max_results, min_year=min_year, max_year=max_year)
 
         # 2. Fallback to raw query if keyword optimization produced 0 results
         if not pmids and optimized_query != clean_query:
-            pmids = self._execute_esearch(clean_query, max_results)
+            pmids = self._execute_esearch(clean_query, max_results, min_year=min_year, max_year=max_year)
 
         return pmids
 
-    def fetch_details(self, pmids: List[str]) -> List[PaperMetadata]:
+    def fetch_details(
+        self,
+        pmids: List[str],
+        min_year: Optional[int] = None,
+        max_year: Optional[int] = None
+    ) -> List[PaperMetadata]:
         """
         Retrieves full XML records for a list of PMIDs via EFetch and extracts metadata.
+        Filters papers to ensure publication year strictly matches [min_year, max_year].
         
         Parameters:
             pmids (List[str]): List of PubMed IDs to fetch.
+            min_year (Optional[int]): Earliest publication year filter.
+            max_year (Optional[int]): Latest publication year filter.
             
         Returns:
             List[PaperMetadata]: Parsed scientific paper objects.
@@ -236,6 +376,7 @@ class PubMedRetriever:
             "retmode": "xml",
         })
 
+        parsed_papers: List[PaperMetadata] = []
         max_retries = 3
         for attempt in range(max_retries):
             try:
@@ -251,24 +392,40 @@ class PubMedRetriever:
                     time.sleep(wait_time)
                     continue
 
+                if response.status_code >= 500:
+                    parsed_papers = self._fetch_details_europepmc(unique_pmids)
+                    break
+
                 response.raise_for_status()
-                return self.parse_xml(response.content)
+                parsed_papers = self.parse_xml(response.content)
+                break
 
             except requests.Timeout:
                 logger.warning(f"NCBI EFetch timeout on attempt {attempt + 1}/{max_retries}.")
                 if attempt == max_retries - 1:
-                    return []
+                    parsed_papers = self._fetch_details_europepmc(unique_pmids)
                 time.sleep(1.0)
-            except requests.RequestException as req_err:
+            except Exception as req_err:
                 logger.error(f"Error executing PubMed EFetch: {req_err}")
-                return []
+                parsed_papers = self._fetch_details_europepmc(unique_pmids)
+                break
 
-        return []
+        if not parsed_papers and unique_pmids:
+            parsed_papers = self._fetch_details_europepmc(unique_pmids)
+
+        # Strictly enforce publication year filter on parsed papers
+        if min_year is not None or max_year is not None:
+            parsed_papers = [
+                p for p in parsed_papers
+                if matches_year_range(p.year, min_year, max_year)
+            ]
+
+        return parsed_papers
 
     def parse_xml(self, xml_bytes: bytes) -> List[PaperMetadata]:
         """
         Parses NCBI PubmedArticleSet XML into structured PaperMetadata records.
-        Uses standard library xml.etree.ElementTree for speed and portability.
+        Handles both PubmedArticle and PubmedBookArticle records.
         """
         papers: List[PaperMetadata] = []
         try:
@@ -277,16 +434,25 @@ class PubMedRetriever:
             logger.error(f"Failed to parse PubMed XML data: {err}")
             return papers
 
-        for article_elem in root.findall(".//PubmedArticle"):
+        # Collect both standard articles and book documents
+        article_elements = root.findall(".//PubmedArticle") + root.findall(".//PubmedBookArticle")
+
+        for article_elem in article_elements:
             try:
                 # 1. Extract PMID (Mandatory)
                 pmid_node = article_elem.find(".//MedlineCitation/PMID")
+                if pmid_node is None:
+                    pmid_node = article_elem.find(".//BookDocument/PMID")
+                if pmid_node is None:
+                    pmid_node = article_elem.find(".//PMID")
                 if pmid_node is None or not pmid_node.text:
                     continue
                 pmid = pmid_node.text.strip()
 
                 # 2. Extract Title
                 title_node = article_elem.find(".//ArticleTitle")
+                if title_node is None:
+                    title_node = article_elem.find(".//BookTitle")
                 title = "".join(title_node.itertext()).strip() if title_node is not None else "Untitled Scientific Publication"
                 if title.endswith("."):
                     title = title[:-1].strip()
@@ -309,19 +475,27 @@ class PubMedRetriever:
                     abstract = NO_ABSTRACT_TEXT
                     has_abstract = False
 
-                # 4. Extract Academic Journal
+                # 4. Extract Academic Journal / Book Title
                 journal_node = article_elem.find(".//Journal/Title")
                 if journal_node is None or not journal_node.text:
                     journal_node = article_elem.find(".//MedlineJournalInfo/MedlineTA")
+                if journal_node is None or not journal_node.text:
+                    journal_node = article_elem.find(".//Book/BookTitle")
+                if journal_node is None or not journal_node.text:
+                    journal_node = article_elem.find(".//Publisher/PublisherName")
                 journal = journal_node.text.strip() if journal_node is not None and journal_node.text else "Biomedical Journal"
 
                 # 5. Extract Publication Year
                 year = "Unknown"
                 year_node = article_elem.find(".//JournalIssue/PubDate/Year")
+                if year_node is None or not year_node.text:
+                    year_node = article_elem.find(".//PubDate/Year")
                 if year_node is not None and year_node.text:
                     year = year_node.text.strip()
                 else:
                     medline_date = article_elem.find(".//JournalIssue/PubDate/MedlineDate")
+                    if medline_date is None:
+                        medline_date = article_elem.find(".//PubDate/MedlineDate")
                     if medline_date is not None and medline_date.text:
                         m = re.search(r"\b(19\d\d|20\d\d)\b", medline_date.text)
                         if m:
@@ -377,12 +551,18 @@ class PubMedRetriever:
 
         return papers
 
-    def retrieve(self, query: str, max_results: int = config.DEFAULT_MAX_PAPERS) -> SearchResult:
+    def retrieve(
+        self,
+        query: str,
+        max_results: int = config.DEFAULT_MAX_PAPERS,
+        min_year: Optional[int] = None,
+        max_year: Optional[int] = None
+    ) -> SearchResult:
         """
-        Unified method: Searches PubMed and fetches structured metadata for all matches.
+        Unified method: Searches PubMed and fetches structured metadata for all matches within year range.
         Returns a SearchResult object distinguishing empty search from missing abstracts.
         """
-        pmids = self.search(query, max_results=max_results)
+        pmids = self.search(query, max_results=max_results, min_year=min_year, max_year=max_year)
         
         if not pmids:
             return SearchResult(
@@ -394,14 +574,14 @@ class PubMedRetriever:
                 error_message=None
             )
 
-        papers = self.fetch_details(pmids)
+        papers = self.fetch_details(pmids, min_year=min_year, max_year=max_year)
         
         return SearchResult(
             query=query,
-            total_found=len(pmids),
-            pmids=pmids,
+            total_found=len(papers),
+            pmids=[p.pmid for p in papers],
             papers=papers,
-            is_empty=False,
+            is_empty=len(papers) == 0,
             error_message=None
         )
 
@@ -412,14 +592,23 @@ class PubMedRetriever:
 _default_retriever = PubMedRetriever()
 
 
-def search_pubmed(query: str, max_results: int = config.DEFAULT_MAX_PAPERS) -> List[str]:
+def search_pubmed(
+    query: str,
+    max_results: int = config.DEFAULT_MAX_PAPERS,
+    min_year: Optional[int] = None,
+    max_year: Optional[int] = None
+) -> List[str]:
     """Convenience function to search PubMed for PMIDs."""
-    return _default_retriever.search(query, max_results=max_results)
+    return _default_retriever.search(query, max_results=max_results, min_year=min_year, max_year=max_year)
 
 
-def fetch_paper_details(pmids: List[str]) -> List[PaperMetadata]:
+def fetch_paper_details(
+    pmids: List[str],
+    min_year: Optional[int] = None,
+    max_year: Optional[int] = None
+) -> List[PaperMetadata]:
     """Convenience function to fetch parsed PaperMetadata for PMIDs."""
-    return _default_retriever.fetch_details(pmids)
+    return _default_retriever.fetch_details(pmids, min_year=min_year, max_year=max_year)
 
 
 def parse_pubmed_xml(xml_bytes: bytes) -> List[PaperMetadata]:

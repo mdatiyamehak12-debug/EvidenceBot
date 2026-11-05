@@ -36,12 +36,12 @@ st.markdown(
     """
     <div style="margin-bottom: 22px;">
         <div style="margin-bottom:6px;">
-            <span class="mono-tag" style="color:#38bdf8; background:rgba(14,165,233,0.1); border:1px solid rgba(14,165,233,0.25);">
+            <span class="mono-tag" style="color:#0f766e; background:#f0fdfa; border:1px solid #99f6e4;">
                 VERIFICATION & AUDIT CONSOLE
             </span>
         </div>
-        <h2 style="color: #ffffff; margin-bottom: 4px; font-weight:800; letter-spacing:-0.03em;">Grounding & Verification Audit</h2>
-        <p style="color: #94a3b8; margin: 0; font-size:0.98rem;">Atomic claim-level fact-checking, citation provenance verification, and scientific abstention diagnostics.</p>
+        <h2 style="color: #0f172a; margin-bottom: 4px; font-weight:800; letter-spacing:-0.03em;">Grounding & Verification Audit</h2>
+        <p style="color: #475569; margin: 0; font-size:0.98rem;">Atomic claim-level fact-checking, citation provenance verification, and scientific abstention diagnostics.</p>
     </div>
     """,
     unsafe_allow_html=True
@@ -314,7 +314,7 @@ if "latest_result" in st.session_state:
                 """
                 <div class="stat-tile" style="text-align:center; padding:12px;">
                     <div class="stat-label">Condition 01</div>
-                    <strong style="font-size:0.88rem; color:#ffffff;">Zero Records</strong>
+                    <strong style="font-size:0.88rem; color:#0f172a;">Zero Records</strong>
                     <div style="font-size:0.75rem; color:#64748b;">Empty NCBI retrieval</div>
                 </div>
                 """,
@@ -325,7 +325,7 @@ if "latest_result" in st.session_state:
                 """
                 <div class="stat-tile" style="text-align:center; padding:12px;">
                     <div class="stat-label">Condition 02</div>
-                    <strong style="font-size:0.88rem; color:#ffffff;">Title Only</strong>
+                    <strong style="font-size:0.88rem; color:#0f172a;">Title Only</strong>
                     <div style="font-size:0.75rem; color:#64748b;">Missing abstract text</div>
                 </div>
                 """,
@@ -336,7 +336,7 @@ if "latest_result" in st.session_state:
                 """
                 <div class="stat-tile" style="text-align:center; padding:12px;">
                     <div class="stat-label">Condition 03</div>
-                    <strong style="font-size:0.88rem; color:#ffffff;">Low Relevance</strong>
+                    <strong style="font-size:0.88rem; color:#0f172a;">Low Relevance</strong>
                     <div style="font-size:0.75rem; color:#64748b;">Similarity below threshold</div>
                 </div>
                 """,
@@ -347,7 +347,7 @@ if "latest_result" in st.session_state:
                 """
                 <div class="stat-tile" style="text-align:center; padding:12px;">
                     <div class="stat-label">Condition 04</div>
-                    <strong style="font-size:0.88rem; color:#ffffff;">Contradictions</strong>
+                    <strong style="font-size:0.88rem; color:#0f172a;">Contradictions</strong>
                     <div style="font-size:0.75rem; color:#64748b;">Conflicting trial outcomes</div>
                 </div>
                 """,
@@ -358,7 +358,7 @@ if "latest_result" in st.session_state:
                 """
                 <div class="stat-tile" style="text-align:center; padding:12px;">
                     <div class="stat-label">Condition 05</div>
-                    <strong style="font-size:0.88rem; color:#ffffff;">Unproven Claim</strong>
+                    <strong style="font-size:0.88rem; color:#0f172a;">Unproven Claim</strong>
                     <div style="font-size:0.75rem; color:#64748b;">No grounding excerpt</div>
                 </div>
                 """,

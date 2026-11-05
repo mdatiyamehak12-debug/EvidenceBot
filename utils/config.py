@@ -59,6 +59,7 @@ MIN_SIMILARITY_THRESHOLD = 0.32
 
 # Standard message displayed when evidence is insufficient or unreliable
 ABSTENTION_MESSAGE = "I could not find sufficient reliable evidence in the retrieved literature to provide a confident answer."
+NO_EVIDENCE_FOUND_MESSAGE = "No sufficient scientific evidence found for this query."
 
 # -------------------------------------------------------------------------
 # 5. LLM (Large Language Model) Settings

@@ -33,6 +33,7 @@ ENV/
 
 # Temporary & Runtime Data
 data/public_url.txt
+data/search_history.json
 *.zip
 
 

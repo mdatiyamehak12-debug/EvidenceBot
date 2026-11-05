@@ -92,10 +92,13 @@ def run_rag_pipeline(
     overlap: int = config.CHUNK_OVERLAP_SENTENCES,
     top_k: int = config.TOP_K_CHUNKS,
     threshold: float = config.MIN_SIMILARITY_THRESHOLD,
-    retriever: Optional[PubMedRetriever] = None
+    retriever: Optional[PubMedRetriever] = None,
+    min_year: Optional[int] = None,
+    max_year: Optional[int] = None,
 ) -> Dict[str, Any]:
     """
     Executes the complete RAG pipeline with strict citation validation and abstention guards.
+    Applies publication year filtering when min_year or max_year are provided.
     """
     clean_question = question.strip()
     if not clean_question:
@@ -125,7 +128,19 @@ def run_rag_pipeline(
     # Step 1 & 2: PubMed Literature Retrieval
     # -----------------------------------------------------------------
     active_retriever = retriever or PubMedRetriever()
-    search_payload = active_retriever.retrieve(clean_question, max_results=max_papers)
+    try:
+        search_payload = active_retriever.retrieve(
+            clean_question,
+            max_results=max_papers,
+            min_year=min_year,
+            max_year=max_year
+        )
+    except TypeError:
+        # Backward compatibility for mock retrievers in unit tests
+        search_payload = active_retriever.retrieve(
+            clean_question,
+            max_results=max_papers
+        )
 
     # Condition 1: No relevant papers retrieved
     if search_payload.is_empty or not search_payload.papers:
@@ -140,7 +155,7 @@ def run_rag_pipeline(
         return RAGPipelineResult(
             status="abstained",
             question=clean_question,
-            answer=f"**⚠️ Scientific Abstention**\n\n{config.ABSTENTION_MESSAGE}",
+            answer=f"**Scientific Abstention: No sufficient scientific evidence found for this query.**\n\n{config.ABSTENTION_MESSAGE}",
             confidence="Insufficient",
             max_score=0.0,
             threshold_used=threshold,
@@ -176,7 +191,7 @@ def run_rag_pipeline(
         return RAGPipelineResult(
             status="abstained",
             question=clean_question,
-            answer=f"**⚠️ Scientific Abstention**\n\n{config.ABSTENTION_MESSAGE}",
+            answer=f"**Scientific Abstention: No sufficient scientific evidence found for this query.**\n\n{config.ABSTENTION_MESSAGE}",
             confidence="Insufficient",
             max_score=0.0,
             threshold_used=threshold,
@@ -227,7 +242,7 @@ def run_rag_pipeline(
         return RAGPipelineResult(
             status="abstained",
             question=clean_question,
-            answer=f"**⚠️ Scientific Abstention**\n\n{config.ABSTENTION_MESSAGE}",
+            answer=f"**Scientific Abstention: No sufficient scientific evidence found for this query.**\n\n{config.ABSTENTION_MESSAGE}",
             confidence="Insufficient",
             max_score=max_score,
             threshold_used=threshold,
@@ -283,7 +298,7 @@ def run_rag_pipeline(
         return RAGPipelineResult(
             status="abstained",
             question=clean_question,
-            answer=f"**⚠️ Scientific Abstention**\n\n{config.ABSTENTION_MESSAGE}",
+            answer=f"**Scientific Abstention: No sufficient scientific evidence found for this query.**\n\n{config.ABSTENTION_MESSAGE}",
             confidence="Insufficient",
             max_score=max_score,
             threshold_used=threshold,
