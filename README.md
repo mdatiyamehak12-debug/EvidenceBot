@@ -2,10 +2,10 @@
 
 > **"Answers with cited evidence, and admits when there is none."**
 
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://streamlit.io)
+[![Deploy to Streamlit Cloud](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/deploy?repository=mdatiyamehak12-debug/EvidenceBot&branch=main&mainModule=app.py)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
-[![Tests Passing](https://img.shields.io/badge/Tests-28%2F28%20Passing-brightgreen)](https://github.com/)
+[![Tests Passing](https://img.shields.io/badge/Tests-37%2F37%20Passing-brightgreen)](https://github.com/)
 
 **EvidenceBot** is a specialized Retrieval-Augmented Generation (RAG) assistant designed for biomedical and clinical research inquiry. It connects directly to the official **National Center for Biotechnology Information (NCBI PubMed)** API, encodes peer-reviewed abstracts using **SentenceTransformers**, indexes them with in-memory **FAISS** vector search, synthesizes answers using strictly grounded LLMs (Google Gemini / OpenAI / Local Ollama or built-in Extractive Synthesizer), and enforces an automated **Citation Integrity Audit** and a 5-tier **Scientific Abstention Mechanism**.
 
