@@ -1,598 +1,613 @@
 """
-EvidenceBot - Enterprise Scientific Research UI Components & Design System
-==========================================================================
-Modern, premium scientific research platform styled with:
-- Deep navy blue (#14243A)
-- White (#FFFFFF)
-- Soft light grey (#F5F7FA)
-- Teal (#168C83)
-- Subtle blue accents (#1E3A8A, #E8F4F8)
+EvidenceBot - Modern Scientific AI Research Platform UI Design System
+====================================================================
+Inspired by ChatGPT, Perplexity, and premium modern SaaS interfaces.
+Clean, spacious, minimal, elegant, and professional.
 
-Clean typography, minimal clutter, rounded cards, subtle shadows,
-and responsive desktop/mobile layout.
+Color Palette:
+- Background: Warm off-white (#F8FAFC)
+- Primary text: Deep navy (#172B4D)
+- Accent: Elegant teal (#168C83)
+- Secondary text: Soft grey (#64748B)
+- Cards: Pure white (#FFFFFF)
+- Borders: Subtle grey (#E2E8F0)
 """
 
 import streamlit as st
 from typing import List, Optional, Any, Dict
-from datetime import datetime
 from utils.helpers import format_author_list, format_pubmed_url
-from utils.history_manager import load_search_history, clear_search_history, add_to_history
+from utils.history_manager import load_search_history, clear_search_history
 
 # =====================================================================
-# Professional Scientific Design System CSS
+# Modern Minimalist Scientific Design System CSS
 # =====================================================================
 
 SCIENTIFIC_THEME_CSS = """
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
-    /* Global Typography & Base Palette */
+    /* Global Typography & Palette */
     html, body, [class*="css"], [class*="st-"] {
         font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
-        color: #14243A;
+        color: #172B4D;
     }
 
-    /* Background and Spacing */
+    /* Clean Warm Off-White Background */
     .stApp {
-        background-color: #F5F7FA;
+        background-color: #F8FAFC !important;
     }
 
+    /* Container Spacing & Alignment (Perplexity / ChatGPT style) */
     .block-container {
-        padding-top: 1.8rem !important;
+        padding-top: 1.5rem !important;
         padding-bottom: 3.5rem !important;
-        max-width: 1200px !important;
+        max-width: 980px !important;
+        margin: 0 auto !important;
     }
 
     /* Headings */
     h1, h2, h3, h4, h5, h6 {
         font-family: 'Plus Jakarta Sans', sans-serif !important;
-        color: #14243A !important;
+        color: #172B4D !important;
         font-weight: 700 !important;
-        letter-spacing: -0.025em !important;
+        letter-spacing: -0.028em !important;
     }
 
-    /* Main Dashboard Header Card */
-    .dashboard-header {
-        background-color: #FFFFFF;
-        border: 1px solid #E5E7EB;
-        border-radius: 12px;
-        padding: 28px 32px;
-        margin-bottom: 20px;
-        box-shadow: 0 2px 10px rgba(20, 36, 58, 0.04);
-    }
-    .header-eyebrow {
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 0.72rem;
-        font-weight: 700;
-        letter-spacing: 0.08em;
-        color: #168C83;
-        text-transform: uppercase;
-        margin-bottom: 6px;
-    }
-    .dashboard-header h1 {
-        font-size: 2.1rem !important;
-        margin: 0 0 4px 0 !important;
-        color: #14243A !important;
-        font-weight: 800 !important;
-        letter-spacing: -0.035em !important;
-    }
-    .header-tagline {
-        font-size: 1.05rem;
-        font-weight: 600;
-        color: #168C83;
-        margin-bottom: 6px;
-    }
-    .header-subtitle {
-        font-size: 0.95rem;
-        color: #4B5563;
-        margin: 0;
-        line-height: 1.55;
+    /* Hide Streamlit Default Pages Nav in Sidebar (clean custom sidebar) */
+    [data-testid="stSidebarNav"] {
+        display: none !important;
     }
 
-    /* Cards with subtle shadows and rounded corners */
-    .content-card {
-        background-color: #FFFFFF;
-        border: 1px solid #E5E7EB;
-        border-radius: 12px;
-        padding: 24px;
-        margin-bottom: 18px;
-        box-shadow: 0 2px 10px rgba(20, 36, 58, 0.04);
+    /* Streamlit Header & Status Cleanup */
+    header[data-testid="stHeader"] {
+        background: transparent !important;
     }
 
-    /* Research Paper Cards */
-    .paper-card {
-        background-color: #FFFFFF;
-        border: 1px solid #E5E7EB;
-        border-left: 3px solid #168C83;
-        border-radius: 10px;
-        padding: 20px 24px;
-        margin-bottom: 14px;
-        box-shadow: 0 1px 6px rgba(20, 36, 58, 0.03);
-        transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
-    }
-    .paper-card:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 6px 18px rgba(20, 36, 58, 0.08);
-        border-left-color: #14243A;
-    }
-    .paper-card-title {
-        font-weight: 700;
-        font-size: 1.08rem;
-        color: #14243A;
-        margin-bottom: 6px;
-        line-height: 1.4;
-    }
-    .paper-card-title a {
-        color: #14243A !important;
-        text-decoration: none;
-    }
-    .paper-card-title a:hover {
-        color: #168C83 !important;
-        text-decoration: underline;
-    }
-    .paper-card-meta {
-        font-size: 0.85rem;
-        color: #4B5563;
-        margin-bottom: 10px;
-        line-height: 1.6;
-    }
-    .paper-card-meta strong {
-        color: #14243A;
-    }
-    .paper-abstract-box {
-        background-color: #F8FAFC;
-        border: 1px solid #E5E7EB;
-        border-radius: 6px;
-        padding: 10px 14px;
-        font-size: 0.88rem;
-        color: #374151;
-        line-height: 1.6;
-        margin-top: 8px;
-    }
-
-    /* Status & Filter Badges */
-    .badge-pill {
-        display: inline-flex;
-        align-items: center;
-        padding: 3px 8px;
-        border-radius: 4px;
-        font-size: 0.72rem;
-        font-weight: 600;
-        margin-right: 6px;
-        margin-bottom: 4px;
-        letter-spacing: 0.03em;
-        text-transform: uppercase;
-        font-family: 'JetBrains Mono', monospace;
-    }
-    .badge-teal {
-        background-color: #EBF8F7;
-        color: #168C83;
-        border: 1px solid #99E3DD;
-    }
-    .badge-high {
-        background-color: #ECFDF5;
-        color: #047857;
-        border: 1px solid #A7F3D0;
-    }
-    .badge-moderate {
-        background-color: #FFFBEB;
-        color: #B45309;
-        border: 1px solid #FDE68A;
-    }
-    .badge-prelim {
-        background-color: #EFF6FF;
-        color: #1E40AF;
-        border: 1px solid #BFDBFE;
-    }
-    .badge-insufficient {
-        background-color: #FEF2F2;
-        color: #B91C1C;
-        border: 1px solid #FECACA;
-    }
-    .mono-tag {
-        font-family: 'JetBrains Mono', monospace;
-        font-size: 0.72rem;
-        font-weight: 600;
-        padding: 3px 8px;
-        border-radius: 4px;
-        background: #F1F5F9;
-        color: #334155;
-        border: 1px solid #E2E8F0;
-        display: inline-flex;
-        align-items: center;
-    }
-
-    /* Evidence Availability Header Banner */
-    .evidence-status-banner {
-        border-radius: 10px;
-        padding: 14px 20px;
-        margin-bottom: 18px;
+    /* =====================================================================
+       Minimal Top Navigation Bar
+       ===================================================================== */
+    .top-nav {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 10px;
+        padding: 8px 0 24px 0;
+        margin-bottom: 8px;
+        border-bottom: 1px solid #EDF2F7;
     }
-    .evidence-status-banner.available {
-        background-color: #EBF8F7;
-        border: 1px solid #99E3DD;
-        border-left: 4px solid #168C83;
+    .top-nav-brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
+    }
+    .brand-title {
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: #172B4D;
+        letter-spacing: -0.03em;
+        line-height: 1.1;
+    }
+    .brand-subtitle {
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: #168C83;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* =====================================================================
+       Hero Section (ChatGPT / Perplexity Inspiration)
+       ===================================================================== */
+    .hero-container {
+        text-align: center;
+        padding: 50px 16px 28px 16px;
+        margin: 0 auto;
+        max-width: 780px;
+    }
+    .hero-title {
+        font-size: 2.85rem !important;
+        font-weight: 800 !important;
+        line-height: 1.18 !important;
+        color: #172B4D !important;
+        letter-spacing: -0.04em !important;
+        margin-bottom: 16px !important;
+    }
+    .hero-title span.accent {
         color: #168C83;
     }
-    .evidence-status-banner.unavailable {
-        background-color: #FEF2F2;
-        border: 1px solid #FECACA;
-        border-left: 4px solid #DC2626;
-        color: #991B1B;
-    }
-    .evidence-status-title {
-        font-weight: 700;
-        font-size: 1.0rem;
+    .hero-subtitle {
+        font-size: 1.12rem;
+        font-weight: 400;
+        color: #64748B;
+        line-height: 1.6;
+        margin: 0 auto 34px auto;
+        max-width: 620px;
     }
 
-    /* AI Research Synthesis Card */
-    .answer-card {
-        background-color: #FFFFFF;
-        border: 1px solid #E5E7EB;
-        border-left: 4px solid #14243A;
-        border-radius: 10px;
-        padding: 24px 28px;
-        margin: 16px 0;
-        line-height: 1.7;
-        font-size: 0.96rem;
-        color: #1F2937;
-        box-shadow: 0 2px 10px rgba(20, 36, 58, 0.04);
+    /* =====================================================================
+       Prominent Search Box (Perplexity-Style Elevated Container)
+       ===================================================================== */
+    .search-card-wrapper {
+        background: #FFFFFF;
+        border-radius: 18px;
+        border: 1px solid #E2E8F0;
+        box-shadow: 0 4px 24px -2px rgba(23, 43, 77, 0.07), 0 2px 6px -1px rgba(23, 43, 77, 0.04);
+        padding: 10px 14px 10px 18px;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        margin-bottom: 18px;
     }
-    .answer-card h3 {
-        color: #14243A !important;
-        font-size: 1.10rem !important;
-        letter-spacing: -0.015em;
-        margin-top: 18px !important;
-        margin-bottom: 8px !important;
-        padding-bottom: 4px;
-        border-bottom: 1px solid #F3F4F6;
-        font-weight: 700 !important;
-    }
-    .answer-card h3:first-child {
-        margin-top: 0 !important;
+    .search-card-wrapper:focus-within {
+        border-color: #168C83;
+        box-shadow: 0 0 0 3px rgba(22, 140, 131, 0.14), 0 8px 30px -4px rgba(23, 43, 77, 0.10);
     }
 
-    /* Buttons */
+    /* Streamlit text input & text area inside custom search */
+    .stTextArea textarea, .stTextInput input {
+        border: none !important;
+        box-shadow: none !important;
+        background: transparent !important;
+        font-size: 1.05rem !important;
+        color: #172B4D !important;
+        line-height: 1.5 !important;
+        padding: 6px 0 !important;
+    }
+    .stTextArea textarea:focus, .stTextInput input:focus {
+        border: none !important;
+        box-shadow: none !important;
+    }
+    .stTextArea textarea::placeholder, .stTextInput input::placeholder {
+        color: #94A3B8 !important;
+        font-weight: 400 !important;
+    }
+
+    /* Example Query Chips (Subtle, Clean) */
+    .example-chips-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 14px;
+        margin-bottom: 24px;
+    }
+    .example-chip-label {
+        font-size: 0.80rem;
+        color: #64748B;
+        font-weight: 500;
+        margin-right: 4px;
+    }
+
+    /* Primary & Secondary Action Buttons */
     div.stButton > button[kind="primary"] {
-        background-color: #14243A !important;
+        background-color: #168C83 !important;
         color: #FFFFFF !important;
-        border: 1px solid #14243A !important;
+        border: 1px solid #168C83 !important;
         font-weight: 600 !important;
-        font-size: 0.92rem !important;
-        border-radius: 6px !important;
-        padding: 0.50rem 1.30rem !important;
-        transition: all 0.15s ease !important;
+        font-size: 0.95rem !important;
+        border-radius: 12px !important;
+        padding: 0.55rem 1.4rem !important;
+        box-shadow: 0 2px 8px rgba(22, 140, 131, 0.20) !important;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
     }
     div.stButton > button[kind="primary"]:hover {
-        background-color: #168C83 !important;
-        border-color: #168C83 !important;
-        color: #FFFFFF !important;
+        background-color: #137870 !important;
+        border-color: #137870 !important;
         transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(22, 140, 131, 0.25) !important;
+        box-shadow: 0 4px 14px rgba(22, 140, 131, 0.30) !important;
     }
 
     div.stButton > button[kind="secondary"] {
         background-color: #FFFFFF !important;
-        color: #374151 !important;
-        border: 1px solid #D1D5DB !important;
-        font-weight: 600 !important;
-        font-size: 0.88rem !important;
-        border-radius: 6px !important;
+        color: #64748B !important;
+        border: 1px solid #E2E8F0 !important;
+        font-weight: 500 !important;
+        font-size: 0.85rem !important;
+        border-radius: 10px !important;
+        padding: 0.45rem 1.0rem !important;
         transition: all 0.15s ease !important;
     }
     div.stButton > button[kind="secondary"]:hover {
-        background-color: #F9FAFB !important;
-        border-color: #168C83 !important;
-        color: #168C83 !important;
+        background-color: #F8FAFC !important;
+        border-color: #CBD5E1 !important;
+        color: #172B4D !important;
     }
 
-    /* Links to PubMed */
-    .pubmed-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        background-color: #EBF8F7;
-        color: #168C83 !important;
-        font-weight: 600;
-        font-size: 0.80rem;
-        font-family: 'JetBrains Mono', monospace;
-        letter-spacing: 0.02em;
-        padding: 5px 12px;
-        border-radius: 6px;
-        border: 1px solid #99E3DD;
-        text-decoration: none !important;
-        transition: all 0.15s ease;
-    }
-    .pubmed-btn:hover {
-        background-color: #CCFBF1;
-        border-color: #168C83;
-        color: #0F766E !important;
-    }
-
-    /* Sidebar Customizations */
+    /* =====================================================================
+       Minimal, Sleek Left Sidebar (ChatGPT-style Recent Inquiries)
+       ===================================================================== */
     [data-testid="stSidebar"] {
-        background-color: #14243A !important;
-        border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+        background-color: #FFFFFF !important;
+        border-right: 1px solid #E2E8F0 !important;
+        padding-top: 1rem !important;
     }
-    [data-testid="stSidebar"] * {
-        color: #E5E7EB;
+    [data-testid="stSidebar"] .block-container {
+        padding-top: 1rem !important;
+        padding-left: 1.1rem !important;
+        padding-right: 1.1rem !important;
     }
-    [data-testid="stSidebar"] a {
-        color: #93C5FD !important;
+    [data-testid="stSidebar"] h1, 
+    [data-testid="stSidebar"] h2, 
+    [data-testid="stSidebar"] h3 {
+        color: #172B4D !important;
+    }
+    [data-testid="stSidebar"] p, 
+    [data-testid="stSidebar"] span, 
+    [data-testid="stSidebar"] div {
+        color: #475569;
     }
     [data-testid="stSidebar"] .stButton > button {
-        background-color: rgba(255, 255, 255, 0.05) !important;
-        border: 1px solid rgba(255, 255, 255, 0.12) !important;
-        color: #E5E7EB !important;
-        font-size: 0.82rem !important;
+        background-color: #FFFFFF !important;
+        border: 1px solid #EDF2F7 !important;
+        color: #172B4D !important;
+        font-size: 0.85rem !important;
+        font-weight: 500 !important;
         text-align: left !important;
-        border-radius: 6px !important;
-        padding: 6px 10px !important;
+        border-radius: 8px !important;
+        padding: 8px 12px !important;
+        transition: all 0.15s ease !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        display: block !important;
+        width: 100% !important;
     }
     [data-testid="stSidebar"] .stButton > button:hover {
-        background-color: rgba(22, 140, 131, 0.25) !important;
-        border-color: #168C83 !important;
-        color: #FFFFFF !important;
+        background-color: #F1F5F9 !important;
+        border-color: #CBD5E1 !important;
+        color: #168C83 !important;
     }
 
-    .empty-history-box {
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px dashed rgba(255, 255, 255, 0.15);
-        border-radius: 6px;
+    /* Sidebar "New Research" Button */
+    .sidebar-new-btn button {
+        background-color: #F8FAFC !important;
+        border: 1px solid #E2E8F0 !important;
+        color: #172B4D !important;
+        font-weight: 600 !important;
+        font-size: 0.88rem !important;
+        border-radius: 10px !important;
+        padding: 9px 14px !important;
+    }
+    .sidebar-new-btn button:hover {
+        background-color: #EBF8F7 !important;
+        border-color: #99E3DD !important;
+        color: #168C83 !important;
+    }
+
+    .empty-history-text {
+        color: #94A3B8;
+        font-size: 0.82rem;
         padding: 12px;
         text-align: center;
-        color: #9CA3AF;
-        font-size: 0.78rem;
-        line-height: 1.45;
-        margin: 6px 0;
-    }
-
-    /* Disclaimer Footer */
-    .disclaimer-card {
-        background-color: #FFFFFF;
-        border: 1px solid #E5E7EB;
+        background: #F8FAFC;
         border-radius: 8px;
-        padding: 16px 20px;
-        font-size: 0.80rem;
-        color: #6B7280;
-        margin-top: 36px;
-        line-height: 1.55;
-    }
-    .disclaimer-card strong {
-        color: #374151;
+        border: 1px dashed #E2E8F0;
+        margin: 8px 0;
     }
 
-    /* Clean Cards & Tiles */
-    .stat-tile, .feature-card, .bio-card {
-        background-color: #FFFFFF;
-        border: 1px solid #E5E7EB;
-        border-radius: 10px;
-        padding: 18px 20px;
-        margin-bottom: 14px;
-        box-shadow: 0 1px 6px rgba(20, 36, 58, 0.03);
+    /* =====================================================================
+       Search Results Interface Cards
+       ===================================================================== */
+    /* Target Inquiry Banner */
+    .query-header-card {
+        background: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        border-radius: 14px;
+        padding: 18px 22px;
+        margin-bottom: 22px;
+        box-shadow: 0 2px 10px rgba(23, 43, 77, 0.04);
     }
-    .stat-label {
+    .query-header-label {
         font-family: 'JetBrains Mono', monospace;
         font-size: 0.72rem;
         font-weight: 700;
-        letter-spacing: 0.05em;
-        text-transform: uppercase;
         color: #168C83;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
         margin-bottom: 4px;
     }
-    .stat-value {
-        font-size: 1.6rem;
-        font-weight: 800;
-        color: #14243A;
-        line-height: 1.2;
-    }
-    .feature-title {
+    .query-header-text {
+        font-size: 1.30rem;
         font-weight: 700;
-        font-size: 1.0rem;
-        color: #14243A;
-        margin: 4px 0 6px 0;
+        color: #172B4D;
+        line-height: 1.35;
+        letter-spacing: -0.02em;
     }
-    .feature-desc {
+
+    /* AI Research Synthesis Card */
+    .synthesis-card {
+        background: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        border-radius: 16px;
+        padding: 28px 32px;
+        margin-bottom: 24px;
+        box-shadow: 0 4px 20px -2px rgba(23, 43, 77, 0.05);
+        line-height: 1.75;
+        font-size: 1.02rem;
+        color: #172B4D;
+    }
+    .synthesis-card h3 {
+        font-size: 1.15rem !important;
+        color: #172B4D !important;
+        margin-top: 22px !important;
+        margin-bottom: 10px !important;
+        font-weight: 700 !important;
+    }
+    .synthesis-card h3:first-child {
+        margin-top: 0 !important;
+    }
+
+    /* Retrieved Research Paper Card */
+    .paper-card {
+        background: #FFFFFF;
+        border: 1px solid #E2E8F0;
+        border-radius: 14px;
+        padding: 22px 26px;
+        margin-bottom: 16px;
+        box-shadow: 0 2px 8px rgba(23, 43, 77, 0.03);
+        transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    }
+    .paper-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px -4px rgba(23, 43, 77, 0.08);
+        border-color: #CBD5E1;
+    }
+    .paper-title {
+        font-weight: 700;
+        font-size: 1.08rem;
+        color: #172B4D;
+        line-height: 1.45;
+        margin-bottom: 8px;
+    }
+    .paper-title a {
+        color: #172B4D !important;
+        text-decoration: none;
+    }
+    .paper-title a:hover {
+        color: #168C83 !important;
+        text-decoration: underline;
+    }
+    .paper-meta {
         font-size: 0.86rem;
-        color: #4B5563;
-        line-height: 1.55;
+        color: #64748B;
+        margin-bottom: 12px;
+        line-height: 1.6;
     }
-    .abstention-box {
+    .paper-meta strong {
+        color: #172B4D;
+    }
+    .paper-excerpt-box {
+        background: #F8FAFC;
+        border: 1px solid #EDF2F7;
+        border-radius: 8px;
+        padding: 12px 16px;
+        font-size: 0.88rem;
+        color: #334155;
+        line-height: 1.65;
+        margin-top: 10px;
+    }
+
+    /* Badges & Status Pills */
+    .pill-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 0.74rem;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+        font-family: 'JetBrains Mono', monospace;
+    }
+    .pill-teal {
+        background-color: #EBF8F7;
+        color: #168C83;
+        border: 1px solid #99E3DD;
+    }
+    .pill-high {
+        background-color: #ECFDF5;
+        color: #047857;
+        border: 1px solid #A7F3D0;
+    }
+    .pill-moderate {
+        background-color: #FFFBEB;
+        color: #B45309;
+        border: 1px solid #FDE68A;
+    }
+    .pill-insufficient {
         background-color: #FEF2F2;
+        color: #B91C1C;
+        border: 1px solid #FECACA;
+    }
+
+    /* Abstention Notice */
+    .abstention-alert {
+        background: #FFFFFF;
         border: 1px solid #FECACA;
         border-left: 4px solid #DC2626;
-        border-radius: 10px;
-        padding: 20px 24px;
-        margin: 16px 0;
+        border-radius: 14px;
+        padding: 22px 26px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 12px rgba(220, 38, 38, 0.05);
+    }
+    .abstention-title {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #991B1B;
+        margin-bottom: 8px;
+    }
+    .abstention-desc {
+        color: #475569;
+        font-size: 0.92rem;
+        line-height: 1.65;
+        margin: 0;
+    }
+
+    /* Minimalist Footer */
+    .minimal-footer {
+        text-align: center;
+        padding-top: 40px;
+        padding-bottom: 20px;
+        font-size: 0.78rem;
+        color: #94A3B8;
+        line-height: 1.6;
+        border-top: 1px solid #EDF2F7;
+        margin-top: 48px;
     }
 </style>
 """
 
 
 def apply_theme():
-    """Applies the professional deep navy, white and teal scientific research theme."""
+    """Applies the warm off-white, deep navy, and elegant teal modern design theme."""
     st.markdown(SCIENTIFIC_THEME_CSS, unsafe_allow_html=True)
 
 
 def render_brand_logo_svg() -> str:
-    """Returns a clean, minimalist SVG logo for Bio EvidenceBot."""
+    """Returns a clean, modern minimalist SVG logo for Bio EvidenceBot."""
     return """
-    <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="36" height="36" rx="8" fill="#14243A"/>
-        <circle cx="18" cy="18" r="11" stroke="#168C83" stroke-width="1.8" stroke-dasharray="2 2"/>
-        <path d="M11 18C11 14.134 14.134 11 18 11C21.866 11 25 14.134 25 18C25 21.866 21.866 25 18 25" stroke="#93C5FD" stroke-width="1.8" stroke-linecap="round"/>
-        <path d="M14 14L22 22M22 14L14 22" stroke="#168C83" stroke-width="1.5" stroke-linecap="round"/>
-        <circle cx="18" cy="18" r="3" fill="#168C83"/>
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="32" height="32" rx="8" fill="#168C83"/>
+        <circle cx="16" cy="16" r="9" stroke="#FFFFFF" stroke-width="1.8" stroke-dasharray="2 2"/>
+        <path d="M10 16C10 12.686 12.686 10 16 10C19.314 10 22 12.686 22 16C22 19.314 19.314 22 16 22" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round"/>
+        <circle cx="16" cy="16" r="2.8" fill="#FFFFFF"/>
     </svg>
     """
 
 
-def render_sidebar(current_page: str = "Home"):
+def render_top_nav():
     """
-    Renders professional enterprise sidebar with:
-    - EvidenceBot logo and title
-    - New Research button
-    - Platform module navigation
-    - Recent Searches with reopen click, clear history, and empty state
-    - System status
+    Renders clean top navigation:
+    - Left: EvidenceBot branding and subtitle
+    - Right: Clean minimal About modal trigger
     """
-    with st.sidebar:
-        # 1. EvidenceBot Brand Logo & Header
-        col_logo, col_title = st.columns([1, 3.2])
-        with col_logo:
-            st.markdown(render_brand_logo_svg(), unsafe_allow_html=True)
-        with col_title:
+    col_left, col_right = st.columns([4, 1.2])
+    with col_left:
+        st.markdown(
+            f"""
+            <div style="display:flex; align-items:center; gap:12px; padding: 6px 0;">
+                {render_brand_logo_svg()}
+                <div>
+                    <div style="font-size:1.20rem; font-weight:800; color:#172B4D; letter-spacing:-0.03em; line-height:1.15;">
+                        EvidenceBot
+                    </div>
+                    <div style="font-size:0.72rem; color:#64748B; font-weight:600; letter-spacing:0.04em; text-transform:uppercase; font-family:'JetBrains Mono', monospace;">
+                        AI Research Assistant
+                    </div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+    with col_right:
+        with st.popover("About", use_container_width=True):
             st.markdown(
                 """
-                <div style="font-weight: 800; font-size: 1.15rem; color: #FFFFFF; line-height: 1.15; letter-spacing: -0.025em;">
-                    EvidenceBot
-                </div>
-                <div style="font-size: 0.68rem; color: #99E3DD; font-weight: 600; letter-spacing: 0.06em; font-family: 'JetBrains Mono', monospace; text-transform: uppercase;">
-                    Biomedical Intelligence
-                </div>
-                """,
-                unsafe_allow_html=True
+                ### About EvidenceBot
+                **EvidenceBot** is an AI-powered scientific research assistant designed for exploring biomedical literature and clinical evidence.
+                
+                - **Data Source:** Live programmatic connection to the National Library of Medicine (NCBI PubMed) & Europe PMC.
+                - **Dense Vector Search:** In-memory FAISS vector indexing with 768-dim SentenceTransformers embeddings.
+                - **Anti-Hallucination:** Answers are strictly grounded in retrieved peer-reviewed abstracts with verified PubMed PMIDs.
+                - **Empirical Abstention:** Actively withholds conclusions when evidence is absent, conflicting, or insufficient.
+                
+                *For academic research and scientific inquiry. Not personal medical advice.*
+                """
             )
 
-        st.markdown("<div style='margin-bottom: 12px;'></div>", unsafe_allow_html=True)
 
-        # 2. "New Research" Button (Prominently at the top)
-        if st.button("✨ New Research", key="sidebar_new_research_btn", use_container_width=True):
+def render_sidebar():
+    """
+    Renders minimal, uncluttered left sidebar for Recent Searches.
+    - 'New Research' button at top
+    - List of recent searches (latest first)
+    - Clicking any item reopens that search
+    - Small clear history button
+    """
+    with st.sidebar:
+        st.markdown(
+            f"""
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px; padding-bottom:12px; border-bottom:1px solid #EDF2F7;">
+                {render_brand_logo_svg()}
+                <div>
+                    <div style="font-size:1.05rem; font-weight:700; color:#172B4D; line-height:1.2;">EvidenceBot</div>
+                    <div style="font-size:0.70rem; color:#64748B; font-family:'JetBrains Mono', monospace;">Research History</div>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        # "New Research" button
+        if st.button("➕ New Research", key="sidebar_new_btn", use_container_width=True):
             st.session_state["active_query"] = ""
             st.session_state.pop("latest_result", None)
             st.session_state.pop("latest_question", None)
             st.rerun()
 
-        st.markdown("<div style='margin-bottom: 8px;'></div>", unsafe_allow_html=True)
-        st.caption("PLATFORM MODULES")
-
-        # Official Navigation
-        st.page_link("app.py", label="Research Dashboard")
-        st.page_link("pages/1_Ask_EvidenceBot.py", label="Evidence Synthesis")
-        st.page_link("pages/2_Research_Papers.py", label="Literature Explorer")
-        st.page_link("pages/3_Evidence_Analysis.py", label="Grounding & Audit")
-        st.page_link("pages/4_About.py", label="About EvidenceBot")
-
-        st.markdown("---")
-
-        # 3. Recent Searches (Persistent across refreshes)
+        st.markdown("<div style='margin-bottom:14px;'></div>", unsafe_allow_html=True)
         st.caption("RECENT SEARCHES")
+
         recent_searches = load_search_history()
 
         if recent_searches:
-            for idx, item in enumerate(recent_searches[:8]):
-                query_text = item.get("query", "")
-                yr_tag = f" ({item['year_range']})" if item.get("year_range") else ""
-                short_label = query_text[:26] + "..." if len(query_text) > 26 else query_text
-                btn_display = f"🔍 {short_label}" + yr_tag
+            for idx, item in enumerate(recent_searches[:10]):
+                q_text = item.get("query", "")
+                display_label = q_text[:30] + "..." if len(q_text) > 30 else q_text
 
-                if st.button(btn_display, key=f"sidebar_hist_{idx}", use_container_width=True):
-                    st.session_state["active_query"] = query_text
-                    st.session_state["query_to_run"] = query_text
-                    if item.get("year_range"):
-                        st.session_state["history_year_range"] = item.get("year_range")
+                if st.button(f"🔍 {display_label}", key=f"hist_btn_{idx}", use_container_width=True):
+                    st.session_state["active_query"] = q_text
+                    st.session_state["query_to_run"] = q_text
                     st.rerun()
 
-            col_clr, col_cnt = st.columns([1.2, 1])
-            with col_clr:
-                if st.button("Clear History", key="btn_clear_hist", use_container_width=True):
+            st.markdown("<div style='margin-top:14px;'></div>", unsafe_allow_html=True)
+            col_c1, col_c2 = st.columns([1.2, 1])
+            with col_c1:
+                if st.button("Clear History", key="btn_clear_hist", type="secondary", use_container_width=True):
                     clear_search_history()
                     st.rerun()
-            with col_cnt:
+            with col_c2:
                 st.markdown(
-                    f"<div style='font-size:0.72rem; color:#9CA3AF; text-align:right; padding-top:6px; font-family:\"JetBrains Mono\", monospace;'>"
-                    f"{len(recent_searches)} saved"
+                    f"<div style='font-size:0.72rem; color:#94A3B8; text-align:right; padding-top:6px; font-family:\"JetBrains Mono\", monospace;'>"
+                    f"{len(recent_searches)} queries"
                     f"</div>",
                     unsafe_allow_html=True
                 )
         else:
-            # Empty state
             st.markdown(
                 """
-                <div class="empty-history-box">
-                    <div>No recent searches yet.</div>
-                    <div style="font-size:0.70rem; color:#6B7280; margin-top:3px;">Your scientific inquiries will appear here.</div>
+                <div class="empty-history-text">
+                    No recent searches yet.<br>
+                    Your research questions will appear here.
                 </div>
                 """,
                 unsafe_allow_html=True
             )
 
-        st.markdown("---")
-
-        # 4. System Status Telemetry
-        st.caption("DATA PROVENANCE")
-        st.markdown(
-            """
-            <div style="font-size:0.75rem; color:#9CA3AF; line-height:1.65; font-family:'JetBrains Mono', monospace;">
-                <div>&bull; <strong>NCBI Entrez:</strong> CONNECTED</div>
-                <div>&bull; <strong>Europe PMC:</strong> SYNCHRONIZED</div>
-                <div>&bull; <strong>FAISS Index:</strong> ACTIVE</div>
-                <div>&bull; <strong>PubMed Corpus:</strong> 36.8M+ RECORDS</div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
 
 def render_confidence_badge(confidence: str, similarity_score: Optional[float] = None) -> str:
-    """Generates styled badge for confidence classification."""
-    score_str = f" &bull; SIM: {similarity_score:.2f}" if similarity_score is not None else ""
-    if confidence == "High":
-        return f'<span class="badge-pill badge-high">STRONG EVIDENCE{score_str}</span>'
-    elif confidence == "Moderate":
-        return f'<span class="badge-pill badge-moderate">MODERATE EVIDENCE{score_str}</span>'
-    elif confidence == "Preliminary":
-        return f'<span class="badge-pill badge-prelim">PRELIMINARY LITERATURE{score_str}</span>'
+    """Returns styled minimal badge for confidence level."""
+    score_str = f" &bull; {similarity_score:.2f}" if similarity_score is not None else ""
+    c_lower = confidence.lower()
+    if "high" in c_lower:
+        return f'<span class="pill-badge pill-high">● High Reliability{score_str}</span>'
+    elif "moderate" in c_lower:
+        return f'<span class="pill-badge pill-moderate">● Moderate Evidence{score_str}</span>'
     else:
-        return f'<span class="badge-pill badge-insufficient">INSUFFICIENT EVIDENCE{score_str}</span>'
+        return f'<span class="pill-badge pill-insufficient">● Preliminary / Sparse{score_str}</span>'
 
 
-def render_claim_status_badge(status: str) -> str:
-    """Renders styled badge for evidence verification status."""
-    status_upper = status.upper()
-    if status_upper == "SUPPORTED":
-        return '<span class="badge-pill badge-high">EMPIRICALLY SUPPORTED</span>'
-    elif status_upper == "PARTIALLY_SUPPORTED":
-        return '<span class="badge-pill badge-moderate">PARTIALLY SUPPORTED</span>'
-    elif status_upper == "CONTRADICTED":
-        return '<span class="badge-pill badge-insufficient">CONFLICTING FINDINGS</span>'
-    elif status_upper == "UNCERTAIN_HUMAN_REVIEW":
-        return '<span class="badge-pill badge-teal">EXPERT REVIEW REQUIRED</span>'
-    else:
-        return '<span class="badge-pill badge-insufficient">INSUFFICIENT DATA</span>'
-
-
-def render_evidence_availability(is_available: bool, count: int = 0, year_range: str = "All Years") -> None:
-    """Renders Section B: Evidence Overview."""
-    if is_available:
+def render_evidence_availability(is_available: bool, count: int = 0, year_range: str = "All Years"):
+    """Renders clean evidence overview banner."""
+    if is_available and count > 0:
         st.markdown(
             f"""
-            <div class="evidence-status-banner available">
-                <div class="evidence-status-title">
-                    &bull; Verified Scientific Evidence Available ({count} Articles &bull; {year_range})
+            <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-left:4px solid #168C83; border-radius:12px; padding:14px 20px; margin-bottom:18px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+                <div style="font-weight:700; color:#172B4D; font-size:0.95rem;">
+                    Scientific Evidence Available &bull; <span style="color:#168C83;">{count} Peer-Reviewed Publication(s)</span>
                 </div>
-                <div>
-                    <span class="badge-pill badge-teal">DETERMINISTIC GROUNDING</span>
-                    <span class="badge-pill badge-high">AUTHENTIC CITATIONS</span>
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-    else:
-        st.markdown(
-            """
-            <div class="evidence-status-banner unavailable">
-                <div class="evidence-status-title">
-                    &bull; No sufficient scientific evidence found for this query.
-                </div>
-                <div>
-                    <span class="badge-pill badge-insufficient">EMPIRICAL ABSTENTION</span>
+                <div style="font-size:0.78rem; font-family:'JetBrains Mono', monospace; color:#64748B;">
+                    CORPUS: NCBI PUBMED
                 </div>
             </div>
             """,
@@ -600,118 +615,74 @@ def render_evidence_availability(is_available: bool, count: int = 0, year_range:
         )
 
 
-def render_paper_card(paper: Any, is_cited: bool = False, chunk_score: Optional[float] = None):
+def render_paper_card(paper: Any, is_cited: bool = False):
     """
-    Renders professional individual research paper cards matching Section C:
-    - Research paper title
+    Renders an individual research paper in a clean white card.
+    Contains:
+    - Research paper title (clickable link to PubMed)
     - Authors
     - Publication year
     - Journal name
     - Abstract or relevant evidence
     - PubMed ID
-    - Link to original research paper
+    - Direct original research link
     """
-    if isinstance(paper, dict):
-        pmid = paper.get("pmid", "")
-        title = paper.get("title", "Untitled Publication")
-        journal = paper.get("journal", "Biomedical Journal")
-        year = paper.get("year", "N/A")
-        authors = paper.get("authors", [])
-        doi = paper.get("doi")
-        url = paper.get("url") or format_pubmed_url(pmid)
-        abstract = paper.get("abstract", "")
-        has_abstract = bool(abstract and "no abstract" not in abstract.lower())
-    else:
-        pmid = paper.pmid
-        title = paper.title
-        journal = paper.journal
-        year = paper.year
-        authors = paper.authors
-        doi = paper.doi
-        url = paper.url
-        abstract = paper.abstract
-        has_abstract = getattr(paper, "has_abstract", bool(abstract and "no abstract" not in abstract.lower()))
+    authors_formatted = format_author_list(paper.authors, max_authors=4)
+    pubmed_url = format_pubmed_url(paper.pmid)
+    year_str = str(paper.year) if paper.year else "N/A"
+    journal_str = paper.journal if paper.journal else "Biomedical Literature"
+    
+    cited_badge = '<span class="pill-badge pill-teal" style="font-size:0.70rem; margin-left:6px;">VERIFIED CITATION</span>' if is_cited else ''
 
-    cited_badge = (
-        '<span class="badge-pill badge-high">CITED IN SYNTHESIS</span>'
-        if is_cited
-        else '<span class="badge-pill badge-teal">INDEXED RECORD</span>'
-    )
-    score_badge = f'<span class="badge-pill badge-moderate">SIM: {chunk_score:.2f}</span>' if chunk_score is not None else ""
-    abstract_badge = (
-        '<span class="badge-pill badge-teal">PEER-REVIEWED ABSTRACT</span>'
-        if has_abstract
-        else '<span class="badge-pill badge-insufficient">TITLE RECORD</span>'
-    )
+    abstract_clean = paper.abstract.strip() if paper.abstract else "No structured abstract summary provided in NCBI PubMed database records."
+    if len(abstract_clean) > 450:
+        abstract_clean = abstract_clean[:450] + "..."
 
-    authors_formatted = format_author_list(authors, 3)
-    doi_formatted = f" &bull; <strong>DOI:</strong> <code>{doi}</code>" if doi else ""
-
-    # Short excerpt preview
-    abstract_preview = abstract[:280] + "..." if len(abstract) > 280 else abstract
+    doi_elem = f" &bull; DOI: {paper.doi}" if getattr(paper, "doi", None) else ""
 
     st.markdown(
         f"""
         <div class="paper-card">
-            <div class="paper-card-title">
-                <a href="{url}" target="_blank" title="Open official NCBI PubMed paper in new tab">
-                    {title} &rarr;
-                </a>
+            <div class="paper-title">
+                <a href="{pubmed_url}" target="_blank">{paper.title}</a>
             </div>
-            <div class="paper-card-meta">
-                <strong>Journal:</strong> <em>{journal}</em> ({year}) &bull;
-                <strong>Authors:</strong> {authors_formatted}
-                {doi_formatted}
+            <div class="paper-meta">
+                <strong>{authors_formatted}</strong> &bull; <em>{journal_str}</em> ({year_str}){doi_elem}
+                <div style="margin-top:6px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                    <span class="pill-badge pill-teal">PMID: {paper.pmid}</span>
+                    {cited_badge}
+                    <a href="{pubmed_url}" target="_blank" style="font-size:0.80rem; color:#168C83; text-decoration:none; font-weight:600; margin-left:8px;">
+                        Open on PubMed ↗
+                    </a>
+                </div>
             </div>
-            <div style="margin-bottom:10px;">
-                {cited_badge}
-                {score_badge}
-                {abstract_badge}
-                <span class="mono-tag">PMID {pmid}</span>
-                <span class="mono-tag">YEAR {year}</span>
-            </div>
-            <div class="paper-abstract-box">
-                <strong style="color:#14243A;">Abstract / Evidence Excerpt:</strong><br>
-                {abstract_preview}
-            </div>
-            <div style="margin-top:12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
-                <a href="{url}" target="_blank" class="pubmed-btn">
-                    Official PubMed Record &bull; PMID {pmid} &rarr;
-                </a>
-                <span style="font-size:0.74rem; color:#6B7280; font-family:'JetBrains Mono', monospace;">
-                    Verified NCBI Source
-                </span>
+            <div class="paper-excerpt-box">
+                {abstract_clean}
             </div>
         </div>
         """,
         unsafe_allow_html=True
     )
 
-    if has_abstract and len(abstract) > 280:
-        with st.expander(f"Read Full Abstract (PMID: {pmid})", expanded=False):
-            st.markdown(f"<div style='font-size:0.90rem; line-height:1.65; color:#374151; padding:4px 0;'>{abstract}</div>", unsafe_allow_html=True)
+
+def render_claim_status_badge(status: str) -> str:
+    """Renders claim status pill."""
+    status_clean = status.upper().replace("_", " ")
+    if "SUPPORTED" in status_clean and "PARTIALLY" not in status_clean:
+        return f'<span class="pill-badge pill-high">✓ {status_clean}</span>'
+    elif "PARTIALLY" in status_clean:
+        return f'<span class="pill-badge pill-moderate">~ {status_clean}</span>'
+    else:
+        return f'<span class="pill-badge pill-insufficient">✗ {status_clean}</span>'
 
 
 def render_disclaimer():
-    """Renders professional institutional research notice footer."""
+    """Renders minimal institutional disclaimer at the footer."""
     st.markdown(
         """
-        <div class="disclaimer-card">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
-                <div style="max-width:840px;">
-                    <strong>INSTITUTIONAL SCIENTIFIC RESEARCH NOTICE:</strong> EvidenceBot is an empirical biomedical 
-                    intelligence engine designed to index, synthesize, and verify peer-reviewed scientific literature 
-                    from the National Library of Medicine (NCBI PubMed Central) and Europe PMC. 
-                    This platform is intended exclusively for scientific literature review, clinical trial analysis, 
-                    and academic research. It does <strong>not</strong> provide personalized clinical diagnosis, medical advice, 
-                    or prescriptive therapy. Always consult qualified clinical healthcare professionals for patient care decisions.
-                </div>
-                <div style="text-align:right; font-family:'JetBrains Mono', monospace; font-size:0.74rem; color:#6B7280;">
-                    CORPUS: NCBI PUBMED<br>
-                    INDEX: DENSE VECTOR FAISS<br>
-                    CITATION FIDELITY: 100%
-                </div>
-            </div>
+        <div class="minimal-footer">
+            EvidenceBot synthesizes peer-reviewed literature indexed on NCBI PubMed Central and Europe PMC for research and educational exploration.<br>
+            Strict deterministic citation verification enforced. Not clinical advice.
         </div>
         """,
         unsafe_allow_html=True
