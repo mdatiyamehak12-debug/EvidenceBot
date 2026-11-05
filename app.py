@@ -3,7 +3,7 @@ Bio EvidenceBot - AI-Powered Biomedical Research Assistant
 ==========================================================
 Discover, analyse and synthesise scientific evidence from peer-reviewed literature.
 Powered by NCBI PubMed Central, Europe PMC, SentenceTransformers, and FAISS.
-Minimalist, Perplexity-inspired scientific AI research interface.
+Premium dark-themed scientific AI research interface.
 """
 
 import streamlit as st
@@ -16,6 +16,7 @@ from utils.ui_components import (
     render_evidence_availability,
     render_paper_card,
     render_disclaimer,
+    render_html,
 )
 from utils.history_manager import add_to_history
 from backend.rag_pipeline import run_rag_pipeline
@@ -24,17 +25,17 @@ from backend.rag_pipeline import run_rag_pipeline
 # Page Configuration
 # =====================================================================
 st.set_page_config(
-    page_title="EvidenceBot – AI-Powered Scientific Research Assistant",
+    page_title="EvidenceBot – AI Research Assistant",
     page_icon="🧬",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Apply unified minimalist scientific design theme & sidebar
+# Apply unified dark scientific design theme & sidebar
 apply_theme()
 render_sidebar()
 
-# Handle query triggered from recent search sidebar click or example chips
+# Handle query triggered from recent search sidebar click
 auto_query = st.session_state.pop("query_to_run", None)
 if auto_query:
     st.session_state["active_query"] = auto_query
@@ -46,16 +47,17 @@ has_results = "latest_result" in st.session_state and st.session_state.get("late
 
 if not has_results:
     # =================================================================
-    # HOMEPAGE INTERFACE (Perplexity / ChatGPT Minimalist Experience)
+    # HOMEPAGE INTERFACE (Minimalist Dark Experience)
     # =================================================================
     
     # 1. Top Navigation
     render_top_nav()
 
     # 2. Centre Hero Typography
-    st.markdown(
+    render_html(
         """
         <div class="hero-container">
+            <div class="hero-eyebrow">EVIDENCEBOT</div>
             <h1 class="hero-title">
                 Research Smarter.<br>
                 <span class="accent">Discover Scientific Evidence.</span>
@@ -64,8 +66,7 @@ if not has_results:
                 Your AI-powered companion for exploring biomedical research and scientific literature.
             </p>
         </div>
-        """,
-        unsafe_allow_html=True
+        """
     )
 
     # 3. Prominent Search Box
@@ -73,7 +74,6 @@ if not has_results:
     with col_center:
         current_input_val = st.session_state.get("active_query", "")
         
-        st.markdown('<div class="search-card-wrapper">', unsafe_allow_html=True)
         search_query = st.text_area(
             "Search Query",
             value=current_input_val,
@@ -85,17 +85,15 @@ if not has_results:
         
         col_btn_spacer, col_btn_action = st.columns([3.8, 1.2])
         with col_btn_action:
-            search_button = st.button("Search & Synthesise →", type="primary", use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+            search_button = st.button("Search Evidence →", type="primary", use_container_width=True)
 
-        # 4. Subtle Example Query Chips
-        st.markdown(
+        # Clean, subtle sample research inquiries
+        render_html(
             """
-            <div style="text-align:center; margin-top:8px; margin-bottom:12px;">
-                <span class="example-chip-label">Try asking:</span>
+            <div style="text-align:center; margin-top:16px; margin-bottom:10px;">
+                <span style="font-size:0.80rem; color:#64748B; font-weight:500;">Try asking:</span>
             </div>
-            """,
-            unsafe_allow_html=True
+            """
         )
 
         c1, c2, c3, c4 = st.columns(4)
@@ -154,7 +152,7 @@ if not has_results:
 
 else:
     # =================================================================
-    # SEARCH RESULTS PAGE (Separate, Clean, Elegant View)
+    # SEARCH RESULTS PAGE (Separate, Clean Dark View)
     # =================================================================
     
     # Top Navigation with "← Ask another question" Action
@@ -177,14 +175,13 @@ else:
     top_score = result.get("max_score", 0.0)
 
     # 1. Research Question Display
-    st.markdown(
+    render_html(
         f"""
         <div class="query-header-card">
             <div class="query-header-label">Research Inquiry</div>
             <div class="query-header-text">"{question_display}"</div>
         </div>
-        """,
-        unsafe_allow_html=True
+        """
     )
 
     # 2. Supporting Evidence & Overview
@@ -195,8 +192,7 @@ else:
 
     # 3. AI-Generated Scientific Answer OR Abstention Notice
     if is_abstention:
-        # Clear insufficient evidence notification
-        st.markdown(
+        render_html(
             f"""
             <div class="abstention-alert">
                 <div class="abstention-title">
@@ -206,13 +202,12 @@ else:
                     EvidenceBot strictly enforces an empirical abstention protocol. In scientific and biomedical research, 
                     refusing to synthesize unsupported claims prevents dangerous hallucinations and clinical misinformation.
                 </p>
-                <div style="background:#F8FAFC; border:1px solid #FECACA; border-radius:8px; padding:12px 16px; margin-top:12px; font-size:0.86rem; color:#1F2937; font-family:'JetBrains Mono', monospace;">
+                <div style="background:#111827; border:1px solid rgba(239, 68, 68, 0.3); border-radius:8px; padding:12px 16px; margin-top:12px; font-size:0.86rem; color:#F8FAFC; font-family:'JetBrains Mono', monospace;">
                     <div><strong>Inquiry:</strong> {question_display}</div>
                     <div><strong>Abstention Reason:</strong> {result.get('reason', 'Retrieved literature does not meet confidence standards.')}</div>
                 </div>
             </div>
-            """,
-            unsafe_allow_html=True
+            """
         )
 
         if retrieved_papers:
@@ -223,29 +218,27 @@ else:
 
     else:
         # Reliability Badge & Model Source
-        st.markdown(
+        render_html(
             f"""
             <div style="margin-bottom:12px; display:flex; align-items:center; flex-wrap:wrap; gap:8px;">
                 {render_confidence_badge(confidence_val, top_score)}
                 <span class="pill-badge pill-teal">ENGINE: {result.get('provider', 'Synthesizer')}</span>
-                <span class="pill-badge" style="background:#F1F5F9; color:#475569; border:1px solid #E2E8F0;">
+                <span class="pill-badge" style="background:rgba(255,255,255,0.05); color:#94A3B8; border:1px solid #263449;">
                     {len(retrieved_papers)} STUDIES EVALUATED
                 </span>
             </div>
-            """,
-            unsafe_allow_html=True
+            """
         )
 
         # AI Research Synthesis
         st.markdown("#### AI Research Synthesis")
         answer_text = result.get("answer", "")
-        st.markdown(
+        render_html(
             f"""
             <div class="synthesis-card">
                 {answer_text}
             </div>
-            """,
-            unsafe_allow_html=True
+            """
         )
 
         # 4. References & Authenticated Citations
@@ -257,21 +250,20 @@ else:
                 authors_str = ", ".join(item.get("authors", [])[:3])
                 if len(item.get("authors", [])) > 3:
                     authors_str += " et al."
-                st.markdown(
+                render_html(
                     f"""
-                    <div style="background:#FFFFFF; border:1px solid #E2E8F0; border-left:3px solid #168C83; border-radius:10px; padding:12px 18px; margin-bottom:10px; box-shadow:0 1px 4px rgba(23,43,77,0.02);">
-                        <div style="font-weight:700; font-size:0.98rem; color:#172B4D;">
-                            [{idx}] <a href="{item.get('url')}" target="_blank" style="color:#172B4D; text-decoration:none;">{item.get('title')}</a>
+                    <div style="background:#172033; border:1px solid #263449; border-left:3px solid #2DD4BF; border-radius:10px; padding:14px 18px; margin-bottom:10px; box-shadow:0 2px 8px rgba(0,0,0,0.2);">
+                        <div style="font-weight:700; font-size:0.98rem; color:#F8FAFC;">
+                            [{idx}] <a href="{item.get('url')}" target="_blank" style="color:#F8FAFC; text-decoration:none;">{item.get('title')}</a>
                         </div>
-                        <div style="font-size:0.84rem; color:#64748B; margin-top:3px;">
+                        <div style="font-size:0.84rem; color:#94A3B8; margin-top:4px;">
                             {authors_str} &bull; <em>{item.get('journal', 'Journal')}</em> ({item.get('year', 'N/A')}) &bull; PMID: <code>{item.get('pmid')}</code>
                         </div>
-                        <div style="font-size:0.86rem; color:#334155; margin-top:6px; background:#F8FAFC; padding:6px 10px; border-radius:6px;">
+                        <div style="font-size:0.86rem; color:#CBD5E1; margin-top:8px; background:#111827; border:1px solid #263449; padding:8px 12px; border-radius:6px;">
                             <strong>Cited Context:</strong> "{item.get('claim_context')}"
                         </div>
                     </div>
-                    """,
-                    unsafe_allow_html=True
+                    """
                 )
 
         # 5. Retrieved Research Papers

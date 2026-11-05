@@ -16,31 +16,33 @@ from utils.ui_components import (
     render_confidence_badge,
     render_claim_status_badge,
     render_disclaimer,
+    render_html,
 )
 from backend.evidence_checker import verify_answer_claims
 from backend.citation_checker import validate_citations_comprehensive
 
 st.set_page_config(
     page_title="EvidenceBot – Grounding & Audit",
+    page_icon="🧬",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Apply unified styling and sidebar
+# Apply unified dark styling and sidebar
 apply_theme()
 render_sidebar(current_page="Grounding & Audit")
 
 # Page Header Card
-st.markdown(
+render_html(
     """
-    <div class="dashboard-header">
-        <div class="header-eyebrow">VERIFICATION & AUDIT CONSOLE &bull; ATOMIC CLAIM CHECK &bull; NLI AUDIT</div>
-        <h1 style="font-size: 1.85rem !important;">Grounding & Verification Audit</h1>
-        <div class="header-tagline">Deterministic Citation Provenance & Evidence Verification</div>
-        <p class="header-subtitle">Atomic claim-level fact-checking, citation provenance verification, and scientific abstention diagnostics.</p>
+    <div class="query-header-card" style="margin-bottom:20px;">
+        <div class="query-header-label">VERIFICATION & AUDIT CONSOLE</div>
+        <div class="query-header-text" style="font-size:1.6rem;">Grounding & Verification Audit</div>
+        <p style="color:#94A3B8; margin:6px 0 0 0; font-size:0.95rem;">
+            Atomic claim-level fact-checking, citation provenance verification, and scientific abstention diagnostics.
+        </p>
     </div>
-    """,
-    unsafe_allow_html=True
+    """
 )
 
 if "latest_result" in st.session_state:
@@ -55,9 +57,6 @@ if "latest_result" in st.session_state:
     st.markdown(f"**Target Inquiry:** *\"{question}\"*")
     st.markdown("---")
 
-    # =====================================================================
-    # 1. Verification Metric Cards
-    # =====================================================================
     st.markdown("#### Grounding Telemetry")
 
     claims_data = res.get("verified_claims", [])
@@ -102,7 +101,6 @@ if "latest_result" in st.session_state:
     with col_m5:
         st.metric("Unverified PMIDs", len(hallucinated_pmids))
 
-    # Cosine Similarity Gauge
     st.markdown("#### Semantic Relevance vs. Abstention Baseline")
     progress_val = min(1.0, max(0.0, top_score))
     st.progress(progress_val, text=f"Top Cosine Alignment: {top_score:.2f} (Abstention Threshold: {config.MIN_SIMILARITY_THRESHOLD:.2f})")
@@ -119,18 +117,14 @@ if "latest_result" in st.session_state:
 
     st.markdown("---")
 
-    # Detailed Verification Tabs
     tab_claims, tab_citations, tab_abstention = st.tabs([
         "Claim Grounding Feed",
         "Citation Integrity Audit",
         "Abstention Diagnostics"
     ])
 
-    # TAB 1: Claim Grounding Feed
     with tab_claims:
         st.markdown("#### Claim-by-Claim Verification Feed")
-        st.caption("Every factual assertion in the synthesized answer is individually verified against retrieved PubMed excerpts:")
-
         if claims_data:
             filter_status = st.selectbox(
                 "Filter Claims by Verification Status:",
@@ -145,39 +139,38 @@ if "latest_result" in st.session_state:
 
             for item in filtered_claims:
                 status_badge = render_claim_status_badge(item.get("status", "UNCERTAIN_HUMAN_REVIEW"))
-                study_badge = f'<span class="badge-pill badge-prelim">{item.get("study_type", "Biomedical Literature")}</span>'
-                abstract_badge = '<span class="badge-pill badge-teal">Abstract-Level Evidence</span>'
-                score_badge = f'<span class="badge-pill badge-moderate">SIM: {item.get("confidence_score", 0.0):.2f}</span>'
+                study_badge = f'<span class="pill-badge" style="background:#111827; color:#94A3B8; border:1px solid #263449;">{item.get("study_type", "Biomedical Literature")}</span>'
+                abstract_badge = '<span class="pill-badge pill-teal">Abstract-Level Evidence</span>'
+                score_badge = f'<span class="pill-badge pill-moderate">SIM: {item.get("confidence_score", 0.0):.2f}</span>'
 
-                st.markdown(
+                render_html(
                     f"""
-                    <div class="bio-card" style="margin-bottom:12px; border-left:3px solid #168C83;">
+                    <div class="paper-card" style="margin-bottom:12px; border-left:3px solid #2DD4BF;">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-                            <span style="font-weight:700; color:#14243A; font-family:'JetBrains Mono', monospace; font-size:0.85rem;">ASSERTION #{item.get('claim_id')}</span>
+                            <span style="font-weight:700; color:#2DD4BF; font-family:'JetBrains Mono', monospace; font-size:0.85rem;">ASSERTION #{item.get('claim_id')}</span>
                             <div>
                                 {status_badge}
                                 {score_badge}
                             </div>
                         </div>
-                        <div style="font-size:0.96rem; font-weight:600; color:#14243A; margin-bottom:10px;">
+                        <div style="font-size:0.96rem; font-weight:600; color:#F8FAFC; margin-bottom:10px;">
                             "{item.get('claim_text')}"
                         </div>
                         <div style="margin-bottom:10px;">
                             {study_badge}
                             {abstract_badge}
                         </div>
-                        <div style="background-color:#F8FAFC; border-left:2px solid #168C83; padding:10px 14px; border-radius:4px; font-size:0.86rem; color:#4B5563; margin-bottom:10px;">
+                        <div style="background-color:#111827; border-left:2px solid #2DD4BF; padding:10px 14px; border-radius:4px; font-size:0.86rem; color:#CBD5E1; margin-bottom:10px;">
                             <strong>Verification Logic:</strong> {item.get('reason')}
                         </div>
                     </div>
-                    """,
-                    unsafe_allow_html=True
+                    """
                 )
 
                 if item.get("has_causal_overstatement"):
                     st.warning(
                         "Correlation vs. Causation Notice: This assertion asserts direct causality, "
-                        "but the supporting study is observational or preclinical. Observational associations do not establish clinical causation."
+                        "but the supporting study is observational or preclinical."
                     )
 
                 if item.get("matched_excerpt"):
@@ -195,40 +188,34 @@ if "latest_result" in st.session_state:
             else:
                 st.info("No claim-level decomposition records available for this query.")
 
-    # TAB 2: Citation Integrity Audit
     with tab_citations:
         st.markdown("#### Comprehensive Citation Integrity Audit")
-        st.caption("EvidenceBot audits all citations to ensure PMIDs exist in retrieved literature, metadata is authentic, and claims are supported.")
-
         col_cit1, col_cit2 = st.columns(2)
         with col_cit1:
-            st.markdown(
+            render_html(
                 f"""
-                <div class="stat-tile" style="border-left: 3px solid #10B981;">
-                    <div class="stat-label">Verified PubMed Citations</div>
-                    <div class="stat-value" style="color:#047857;">{len(verified_citations)}</div>
-                    <small style="color:#6B7280;">Authentic PMIDs matched directly to NCBI database records.</small>
+                <div class="paper-card" style="border-left: 3px solid #10B981;">
+                    <div style="font-size:0.75rem; color:#2DD4BF; font-family:'JetBrains Mono', monospace; text-transform:uppercase;">Verified Citations</div>
+                    <div style="font-size:1.8rem; font-weight:800; color:#34D399;">{len(verified_citations)}</div>
+                    <small style="color:#94A3B8;">Authentic PMIDs matched directly to NCBI database records.</small>
                 </div>
-                """,
-                unsafe_allow_html=True
+                """
             )
         with col_cit2:
-            h_color = "#DC2626" if hallucinated_pmids else "#10B981"
-            h_text_color = "#B91C1C" if hallucinated_pmids else "#047857"
-            st.markdown(
+            h_color = "#EF4444" if hallucinated_pmids else "#10B981"
+            h_text_color = "#F87171" if hallucinated_pmids else "#34D399"
+            render_html(
                 f"""
-                <div class="stat-tile" style="border-left: 3px solid {h_color};">
-                    <div class="stat-label">Unverified Reference Inventions</div>
-                    <div class="stat-value" style="color:{h_text_color};">{len(hallucinated_pmids)}</div>
-                    <small style="color:#6B7280;">Invented PMIDs that did not exist in retrieved literature.</small>
+                <div class="paper-card" style="border-left: 3px solid {h_color};">
+                    <div style="font-size:0.75rem; color:#2DD4BF; font-family:'JetBrains Mono', monospace; text-transform:uppercase;">Unverified Inventions</div>
+                    <div style="font-size:1.8rem; font-weight:800; color:{h_text_color};">{len(hallucinated_pmids)}</div>
+                    <small style="color:#94A3B8;">Invented PMIDs that did not exist in retrieved literature.</small>
                 </div>
-                """,
-                unsafe_allow_html=True
+                """
             )
 
         st.markdown("---")
 
-        st.markdown("##### Verified Citations with Deterministic Provenance")
         if verified_citations:
             for v_cit in verified_citations:
                 authors_str = ", ".join(v_cit.get("authors", [])[:3])
@@ -237,183 +224,63 @@ if "latest_result" in st.session_state:
 
                 doi_str = f" | DOI: {v_cit.get('doi')}" if v_cit.get("doi") else ""
                 r_score = v_cit.get("relevance_score", 0.0)
-                r_badge = f'<span class="badge-pill badge-high">RELEVANCE: {r_score:.2f}</span>' if r_score >= 0.40 else f'<span class="badge-pill badge-moderate">RELEVANCE: {r_score:.2f}</span>'
+                r_badge = f'<span class="pill-badge pill-high">RELEVANCE: {r_score:.2f}</span>' if r_score >= 0.40 else f'<span class="pill-badge pill-moderate">RELEVANCE: {r_score:.2f}</span>'
 
-                st.markdown(
+                render_html(
                     f"""
                     <div class="paper-card" style="padding:14px 18px; margin-bottom:10px;">
                         <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px;">
                             <div>
-                                <a href="{v_cit.get('url')}" target="_blank" style="font-weight:700; color:#14243A; text-decoration:none; font-size:0.98rem; letter-spacing:-0.015em;">
+                                <a href="{v_cit.get('url')}" target="_blank" style="font-weight:700; color:#F8FAFC; text-decoration:none; font-size:0.98rem; letter-spacing:-0.015em;">
                                     {v_cit.get('title')} &rarr;
                                 </a>
-                                <div style="font-size:0.82rem; color:#6B7280; margin-top:2px;">
+                                <div style="font-size:0.82rem; color:#94A3B8; margin-top:2px;">
                                     {authors_str} &bull; <em>{v_cit.get('journal', 'Journal')}</em> ({v_cit.get('year', 'N/A')}){doi_str}
                                 </div>
                             </div>
                             <div>
                                 {r_badge}
-                                <span class="mono-tag" style="background:#EBF8F7; color:#168C83; border:1px solid #99E3DD;">PMID {v_cit.get('pmid')}</span>
+                                <span class="pill-badge pill-teal">PMID {v_cit.get('pmid')}</span>
                             </div>
                         </div>
-                        <div style="background-color:#F8FAFC; border-left:2px solid #168C83; padding:8px 12px; margin-top:10px; border-radius:4px; font-size:0.86rem; color:#4B5563;">
+                        <div style="background-color:#111827; border-left:2px solid #2DD4BF; padding:8px 12px; margin-top:10px; border-radius:4px; font-size:0.86rem; color:#CBD5E1;">
                             <strong>Asserted Context:</strong> "{v_cit.get('claim_context')}"
                         </div>
                     </div>
-                    """,
-                    unsafe_allow_html=True
+                    """
                 )
         else:
             st.info("No verified citations recorded.")
 
         if missing_citations:
-            st.warning(f"Identified {len(missing_citations)} assertion(s) in the draft that made factual statements without citing a source PMID:")
-            for mc in missing_citations:
-                st.markdown(f"- *\"{mc}\"*")
+            st.warning(f"Identified {len(missing_citations)} assertion(s) in the draft that made factual statements without citing a source PMID.")
         else:
             st.success("Citation Completeness: All substantive assertions include source PMIDs.")
 
-        if unsupported_claims:
-            st.warning(f"Identified {len(unsupported_claims)} claim(s) where the cited source had weak semantic relevance (< {config.MIN_SIMILARITY_THRESHOLD:.2f}):")
-            for uc in unsupported_claims:
-                st.markdown(
-                    f"""
-                    <div class="bio-card" style="border-left:3px solid #F59E0B; margin-bottom:8px;">
-                        <strong>Claim:</strong> "{uc.get('claim')}"<br>
-                        <strong>Cited PMID:</strong> <code>{uc.get('cited_pmid')}</code> | <strong>Relevance:</strong> {uc.get('relevance_score'):.2f}<br>
-                        <small style="color:#6B7280;"><strong>Audit Note:</strong> {uc.get('reason')}</small>
-                    </div>
-                    """,
-                    unsafe_allow_html=True
-                )
-
-    # TAB 3: Abstention Diagnostics
     with tab_abstention:
         st.markdown("#### Empirical Abstention Subsystem")
-        st.caption("EvidenceBot actively refuses to generate speculative claims when literature is insufficient, conflicting, or irrelevant.")
-
         ab_rep = res.get("abstention_report") or {}
 
-        # 5 Trigger Conditions Overview
-        st.markdown("##### The 5 Deterministic Abstention Triggers:")
-
-        c_tr1, c_tr2, c_tr3, c_tr4, c_tr5 = st.columns(5)
-        with c_tr1:
-            st.markdown(
-                """
-                <div class="stat-tile" style="text-align:center; padding:12px;">
-                    <div class="stat-label">Condition 01</div>
-                    <strong style="font-size:0.88rem; color:#14243A;">Zero Records</strong>
-                    <div style="font-size:0.75rem; color:#6B7280;">Empty NCBI retrieval</div>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-        with c_tr2:
-            st.markdown(
-                """
-                <div class="stat-tile" style="text-align:center; padding:12px;">
-                    <div class="stat-label">Condition 02</div>
-                    <strong style="font-size:0.88rem; color:#14243A;">Title Only</strong>
-                    <div style="font-size:0.75rem; color:#6B7280;">Missing abstract text</div>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-        with c_tr3:
-            st.markdown(
-                """
-                <div class="stat-tile" style="text-align:center; padding:12px;">
-                    <div class="stat-label">Condition 03</div>
-                    <strong style="font-size:0.88rem; color:#14243A;">Low Relevance</strong>
-                    <div style="font-size:0.75rem; color:#6B7280;">Similarity below threshold</div>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-        with c_tr4:
-            st.markdown(
-                """
-                <div class="stat-tile" style="text-align:center; padding:12px;">
-                    <div class="stat-label">Condition 04</div>
-                    <strong style="font-size:0.88rem; color:#14243A;">Contradictions</strong>
-                    <div style="font-size:0.75rem; color:#6B7280;">Conflicting trial outcomes</div>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-        with c_tr5:
-            st.markdown(
-                """
-                <div class="stat-tile" style="text-align:center; padding:12px;">
-                    <div class="stat-label">Condition 05</div>
-                    <strong style="font-size:0.88rem; color:#14243A;">Unproven Claim</strong>
-                    <div style="font-size:0.75rem; color:#6B7280;">No grounding excerpt</div>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-
-        st.markdown("---")
-
         if is_abstained:
-            st.markdown(
+            render_html(
                 f"""
-                <div class="abstention-box">
-                    <h4 style="color:#991B1B; margin-top:0;">Empirical Abstention Enforced</h4>
-                    <p style="font-weight:600; font-size:1.02rem; color:#991B1B;">
+                <div class="abstention-alert">
+                    <h4 style="color:#F87171; margin-top:0;">Empirical Abstention Enforced</h4>
+                    <p style="font-weight:600; font-size:1.02rem; color:#F87171;">
                         No sufficient scientific evidence found for this query.
                     </p>
-                    <hr style="border:0; border-top:1px solid #FECACA; margin:12px 0;">
-                    <ul style="line-height:1.8; color:#374151; font-size:0.88rem; font-family:'JetBrains Mono', monospace;">
+                    <hr style="border:0; border-top:1px solid rgba(239,68,68,0.3); margin:12px 0;">
+                    <ul style="line-height:1.8; color:#CBD5E1; font-size:0.88rem; font-family:'JetBrains Mono', monospace;">
                         <li><strong>Query Ingestion:</strong> {ab_rep.get('search_query', question)}</li>
                         <li><strong>Candidate Records:</strong> {ab_rep.get('papers_retrieved_count', len(papers))} publication(s)</li>
                         <li><strong>Trigger Diagnosis:</strong> {ab_rep.get('reason', res.get('reason', 'N/A'))}</li>
                         <li><strong>Next Steps:</strong> {ab_rep.get('additional_research_required', 'Targeted clinical trials.')}</li>
                     </ul>
                 </div>
-                """,
-                unsafe_allow_html=True
+                """
             )
         else:
             st.success("Abstention Guard Inactive: Retrieved literature satisfied all confidence criteria and established adequate empirical grounding.")
-
-    st.markdown("---")
-
-    # Safety Guardrails Notice
-    st.markdown("### Methodological Guardrails")
-    col_c1, col_c2 = st.columns(2)
-
-    with col_c1:
-        st.markdown(
-            """
-            <div class="stat-tile" style="border-left: 3px solid #F59E0B;">
-                <div class="stat-label" style="color:#D97706;">Correlation vs. Causation</div>
-                <p style="font-size:0.86rem; color:#4B5563; margin-top:6px; line-height:1.6;">
-                    Epidemiological cohort studies routinely observe that deficient serum biomarker levels 
-                    correlate with elevated disease risk. However, correlation alone does not prove that therapeutic 
-                    supplementation reverses disease endpoints. EvidenceBot actively downgrades causal claims when only 
-                    correlational data exists.
-                </p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-    with col_c2:
-        st.markdown(
-            """
-            <div class="stat-tile" style="border-left: 3px solid #168C83;">
-                <div class="stat-label" style="color:#168C83;">Abstract-Level Literature Boundary</div>
-                <p style="font-size:0.86rem; color:#4B5563; margin-top:6px; line-height:1.6;">
-                    All retrieved excerpts represent peer-reviewed <strong>abstract summaries</strong> indexed on NCBI PubMed. 
-                    Full study protocols, adverse-event tables, sub-group stratification, and complete statistical distributions 
-                    require review of full-text publications.
-                </p>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
 
 else:
     st.info("No active query in session. Execute a synthesis on the Research Dashboard to view grounding telemetry and diagnostics.")
