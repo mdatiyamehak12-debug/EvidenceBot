@@ -2,6 +2,7 @@
 
 > **"Answers with cited evidence, and admits when there is none."**
 
+[![Live Website](https://img.shields.io/badge/Live%20Website-EvidenceBot%20Online-2DD4BF?style=for-the-badge&logo=streamlit)](https://mdatiyamehak12-debug-evidencebot-app-76x4ck.streamlit.app/)
 [![Deploy to Streamlit Cloud](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/deploy?repository=mdatiyamehak12-debug/EvidenceBot&branch=main&mainModule=app.py)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
